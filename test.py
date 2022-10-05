@@ -16,9 +16,10 @@ df_FP.join(df_FM.set_index('Linkage Number')['착공확정수량'],on='Linkage N
 # 필터링된 파워 데이터프레임에 필터링된 매크로엑셀파일의 확정수량을 Vlookup으로 설정해줌
 df_final = [df_power.drop['착공확정수량'][i] for i in range(len(df_power.index)) if df_power['착공확정수량'][i] in '']
 # 착공확정수량이 Nan값이면 행 제거
-df_final['착공순번'] = [j for i in range(df_final.index) for j in ((df_final.index)/5)]
+df_final['착공순번'] = [df_final['착공순번'][i] == j for i in range(df_final.index) for j in ((df_final.index)/5)]
 # 착공순번 column 생성 후 순번 지정
 df_final.sort_values('착공순번',ascending=True)
 # 착공순번 오름차순 설정
+df_final['착공순번'] = []
 
 
