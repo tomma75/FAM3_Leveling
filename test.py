@@ -30,26 +30,26 @@ df_ATE_B = []
 CNT_ATE_A = 0 
 CNT_ATE_B = 0 
 ##################TEST######################
-df_ATE_A = df_PowerSelect.loc[0:5]
-add = df_PowerSelect.loc[6:7]
-df_ATE_A = pd.merge(df_ATE_A,add,how='outer')
-df_ATE_A = df_ATE_A.drop(7,axis=0)
-df_ATE_A.to_excel(r"C:\Users\Administrator\Desktop\FAM3_Leveling-1\ksmtest\test1.xlsx")
-print(df_ATE_A)
+df_ATE_A = df_PowerSelect.loc[0:1]
+df_ATE_A = df_ATE_A.drop(1,axis=0)
+
 ############################################
 for i in range(len(str(df_PowerSelect['PRODUCT_TYPE'].index))):
+    CNT_ATE_A += df_PowerSelect['미착공수주잔'][i]  #최대수량까지 ADD
     if CNT_ATE_A < A_MAX:
-        CNT_ATE_A += df_PowerSelect['미착공수주잔'][i]  #최대수량까지 ADD
         add = df_PowerSelect.loc[i:i+1]
         add = add.drop(i+1,axis=0)
         df_ATE_A = pd.merge(df_ATE_A,add,how='outer')
-
+        print(add)
+        print(df_ATE_A)
     else:
-        Save_BFCNT = A_MAX - CNT_ATE_A
-        CNT_ATE_A = A_MAX
-        
-        df_addSmtAssy['미착공수주잔'][i] = Save_BFCNT
-
+        Save_BFCNT = df_addSmtAssy['미착공수주잔'][i]
+        df_addSmtAssy['미착공수주잔'][i] = A_MAX - CNT_ATE_A
+        add = df_PowerSelect.loc[i:i+1]
+        add = add.drop(i+1,axis=0)
+        df_ATE_A = pd.merge(df_ATE_A,add,how='outer')
+        df_addSmtAssy['미착공수주잔'][i] = Save_BFCNT - (A_MAX - CNT_ATE_A)
+        df_ATE_A.to_excel(r"C:\Users\Administrator\Desktop\FAM3_Leveling-1\ksmtest\test1.xlsx")
         break
 
 for i in range(len(str(df_PowerSelect['PRODUCT_TYPE'].index))):
