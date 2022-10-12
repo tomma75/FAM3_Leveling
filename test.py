@@ -3,9 +3,8 @@ import pandas as pd
 from panel import Row
 
 df_power = pd.read_excel(r"C:\Users\Administrator\Desktop\파이썬과제\FA-M3착공\시작DATA\Data\0902\POWER.xlsx")
-df_macro = pd.read_excel(r"C:\Users\Administrator\Desktop\파이썬과제\FA-M3착공\기초Data\FAM3 평준화 착공 LIST_R7.xlsm",header=14)
 
-#L1 = len(df_power.index)
+
 
 df_FP = [df_power.drop['Sequence No'][i] for i in range(len(df_power.index)) if df_power['Sequence No'][i] in 'D']
 # D로 시작하는 행 제거 -> 안됨 ㅠ
@@ -23,3 +22,13 @@ df_final.sort_values('착공순번',ascending=True)
 df_final['착공순번'] = []
 
 
+#L1 = len(df_power.index)
+CG_DF_max = 100 # 착공확정수량 합
+CG_DF_ALam = 미착공수주잔 총합(열 더하는거) >[today() - df_power.sort_values('완성예정일',ascending=False)[0]] * CG_DF_max
+#day 뺀 값을 int형식으로 가져와야함
+for i in range(df_power.index):
+    while CG_DF_sum < CG_DF_max:
+        if df_power['미착공수주잔'][i] < CG_DF_max*0.5:
+            CG_DF_sum = df_power['미착공수주잔'][i] + CG_DF_sum
+        else:
+            df_power['완성예정일'][i]
