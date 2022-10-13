@@ -22,8 +22,8 @@ df_addSmtAssy = pd.read_excel(r"C:\Users\Administrator\Desktop\FAM3_Leveling-1\D
 df_PowerSelect = df_addSmtAssy[df_addSmtAssy['PRODUCT_TYPE'] == 'POWER'].reset_index(drop=True)
 
 #POWER만 선택
-A_MAX = 50  #설정 최대생산대수
-B_MAX = 50  #설정 최대생산대수
+A_MAX = 200  #설정 최대생산대수
+B_MAX = 200  #설정 최대생산대수
 df_ATE_A = []
 add = []
 df_ATE_B = []
@@ -32,37 +32,48 @@ CNT_ATE_B = 0
 ##################TEST######################
 df_ATE_A = df_PowerSelect.loc[0:1]
 df_ATE_A = df_ATE_A.drop(1,axis=0)
+df_ATE_B = df_PowerSelect.loc[0:1]
+df_ATE_B = df_ATE_B.drop(1,axis=0)
 
 ############################################
-for i in range(len(str(df_PowerSelect['PRODUCT_TYPE'].index))):
-    CNT_ATE_A += df_PowerSelect['미착공수주잔'][i]  #최대수량까지 ADD
-    if CNT_ATE_A < A_MAX:
-        add = df_PowerSelect.loc[i:i+1]
-        add = add.drop(i+1,axis=0)
-        df_ATE_A = pd.merge(df_ATE_A,add,how='outer')
-        print(add)
-        print(df_ATE_A)
-    else:
-        Save_BFCNT = df_addSmtAssy['미착공수주잔'][i]
-        df_addSmtAssy['미착공수주잔'][i] = A_MAX - CNT_ATE_A
-        add = df_PowerSelect.loc[i:i+1]
-        add = add.drop(i+1,axis=0)
-        df_ATE_A = pd.merge(df_ATE_A,add,how='outer')
-        df_addSmtAssy['미착공수주잔'][i] = Save_BFCNT - (A_MAX - CNT_ATE_A)
-        df_ATE_A.to_excel(r"C:\Users\Administrator\Desktop\FAM3_Leveling-1\ksmtest\test1.xlsx")
-        break
-
-for i in range(len(str(df_PowerSelect['PRODUCT_TYPE'].index))):
-    if CNT_ATE_B < B_MAX:
+for i in range(len(df_PowerSelect.index)):
+    if df_PowerSelect['ATE_NO'][i] == 'A':
+        if A_MAX < CNT_ATE_A : continue    
+        CNT_ATE_A += df_PowerSelect['미착공수주잔'][i]  #최대수량까지 ADD
+        if CNT_ATE_A < A_MAX :
+            add = df_PowerSelect.loc[i:i+1]
+            add = add.drop(i+1,axis=0)
+            df_ATE_A = pd.merge(df_ATE_A,add,how='outer')
+            Save_BFCNT_A = CNT_ATE_A
+        else:
+            df_PowerSelect['미착공수주잔'][i] = A_MAX - Save_BFCNT_A
+            add = df_PowerSelect.loc[i:i+1]
+            add = add.drop(i+1,axis=0)
+            df_ATE_A = pd.merge(df_ATE_A,add,how='outer')
+            df_ATE_A = df_ATE_A.astype({'Linkage Number':'str'})
+            # 어차피 착공내리면 다음날 새로 긁어서 하기때문에 수주잔 값 변경안해주어도 괜찮음
+            if CNT_ATE_A >A_MAX and CNT_ATE_B > B_MAX : break
+    elif df_PowerSelect['ATE_NO'][i] =='B':
+        if B_MAX < CNT_ATE_B : continue    
         CNT_ATE_B += df_PowerSelect['미착공수주잔'][i]
+        if CNT_ATE_B < B_MAX :
+            add = df_PowerSelect.loc[i:i+1]
+            add = add.drop(i+1,axis=0)
+            df_ATE_B = pd.merge(df_ATE_B,add,how='outer')
+            Save_BFCNT_B = CNT_ATE_B
+        else:
+            df_PowerSelect['미착공수주잔'][i] = B_MAX - Save_BFCNT_B
+            add = df_PowerSelect.loc[i:i+1]
+            add = add.drop(i+1,axis=0)
+            df_ATE_B = pd.merge(df_ATE_B,add,how='outer')
+            df_ATE_B = df_ATE_B.astype({'Linkage Number':'str'})
+            # 어차피 착공내리면 다음날 새로 긁어서 하기때문에 수주잔 값 변경안해주어도 괜찮음
+            if CNT_ATE_A >A_MAX and CNT_ATE_B > B_MAX : break
     else:
-        Save_BFCNT = B_MAX - CNT_ATE_B
-        CNT_ATE_B = B_MAX
-        df_addSmtAssy['미착공수주잔'][i] = Save_BFCNT
-        break
-
-
-
-
-
+        #QMessageBox.information(self, 'Error', '중복된 데이터가 있습니다.')
+        continue
+df_ATE_A = df_ATE_A[df_ATE_A['ATE_NO'] == 'A'].reset_index(drop=True)
+df_ATE_B = df_ATE_B[df_ATE_B['ATE_NO'] == 'B'].reset_index(drop=True)
+df_ATE_A.to_excel(r"C:\Users\Administrator\Desktop\FAM3_Leveling-1\ksmtest\testA.xlsx")
+df_ATE_B.to_excel(r"C:\Users\Administrator\Desktop\FAM3_Leveling-1\ksmtest\testB.xlsx")
 
