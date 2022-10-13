@@ -20,7 +20,7 @@ import cx_Oracle
 
 df_addSmtAssy = pd.read_excel(r"C:\Users\Administrator\Desktop\FAM3_Leveling-1\Debug\flow9.xlsx")
 df_PowerSelect = df_addSmtAssy[df_addSmtAssy['PRODUCT_TYPE'] == 'POWER'].reset_index(drop=True)
-
+df_POWER = pd.read_excel(r"C:\Users\Administrator\Desktop\FAM3_Leveling-1\input\Master_File\20221006\POWER.xlsx")
 #POWER만 선택
 A_MAX = 200  #설정 최대생산대수
 B_MAX = 200  #설정 최대생산대수
@@ -74,6 +74,12 @@ for i in range(len(df_PowerSelect.index)):
         continue
 df_ATE_A = df_ATE_A[df_ATE_A['ATE_NO'] == 'A'].reset_index(drop=True)
 df_ATE_B = df_ATE_B[df_ATE_B['ATE_NO'] == 'B'].reset_index(drop=True)
-df_ATE_A.to_excel(r"C:\Users\Administrator\Desktop\FAM3_Leveling-1\ksmtest\testA.xlsx")
-df_ATE_B.to_excel(r"C:\Users\Administrator\Desktop\FAM3_Leveling-1\ksmtest\testB.xlsx")
-
+df_TH_ATE = pd.merge(df_ATE_A,df_ATE_B,how='outer').reset_index(drop=True)
+df_TH_ATE = df_TH_ATE[['Linkage Number','미착공수주잔']]
+df_TH_ATE.to_excel(r"C:\Users\Administrator\Desktop\FAM3_Leveling-1\ksmtest\test_TH.xlsx")
+# Max 수량만큼 합치기
+df_POWER['미착공수주잔']=0
+df_POWER = df_POWER.astype({'Linkage Number':'str','No (*)':'str','Production Order':'str','Planned Order':'str'})
+df_TH_PW = pd.concat([df_POWER,df_TH_ATE],join='outer',ignore_index=True)
+df_TH_PW = df_TH_PW.astype({'Linkage Number':'str','No (*)':'str','Production Order':'str','Planned Order':'str'})
+df_TH_PW.to_excel(r"C:\Users\Administrator\Desktop\FAM3_Leveling-1\ksmtest\test_TH.xlsx",index=False)
