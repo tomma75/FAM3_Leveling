@@ -1155,6 +1155,7 @@ class Ui_MainWindow(QMainWindow):
                         
                     
                     ##ksm ADD POWER st ## 나중에 잔여착공량추가
+                
                 df_addSmtAssy.to_excel('.\\debug\\flow9-2.xlsx')
                 for i in df_addSmtAssyPower.index:
                     if df_addSmtAssyPower['PRODUCT_TYPE'][i] == 'POWER':
@@ -1171,7 +1172,7 @@ class Ui_MainWindow(QMainWindow):
                                 #SMT assy이름 = assy잔여수량
                                 else:
                                     logging.warning('「사양 : %s」의 SmtAssy가 %s 파일에 등록되지 않았습니다. 등록 후, 다시 실행해주세요.',
-                                                    df_addSmtAssy['MS Code'][i],
+                                                    df_addSmtAssyPower['MS Code'][i],
                                                     list_masterFile[6])
                                     t=1 #SMT 재고 없으면 긴급이 아닌경우에는 그냥 다음껄로 넘겨야한다.
                                     break
@@ -1201,15 +1202,8 @@ class Ui_MainWindow(QMainWindow):
                             else:
                                 df_addSmtAssyPower['SMT반영_착공량'][i] = 0 #재고없으면 0
                 df_addSmtAssyPower.to_excel('.\\debug\\test2.xlsx')# SMT 재고고려 착공량 완료, 설비능력, 잔여착공량고려필요함
-                
-                    
-                ## ksm END ##
 
-                            
-
-                        
-
-                        
+                ## ksm END ##        
                         #for j in range(1,6):
                         #    if df_addSmtAssy[f'ROW{str(j)}'][i] == '' or df_addSmtAssy[f'ROW{str(j)}'][i] == 'nan':
                         #        RT_smt = j # SMT 사용종류
@@ -1298,49 +1292,75 @@ class Ui_MainWindow(QMainWindow):
                 ## KSM ADD st ##
                 df_PowerATE = pd.read_excel(r'.\\input\\DB\\FAM3 전원 LINE 생산 조건.xlsx',header=3)
                 dict_Ate_T = defaultdict(list)
+                dict_AteA = defaultdict(list)
                 df_addSmtAssyPower['설비능력반영_착공량'] = 0
-                k=0
-                #DB에 모델별 공수 추가
-                for i in df_PowerATE.index: 
-                    dict_Ate_T[df_PowerATE['Model'][i]] = df_PowerATE['공수'][i]
-                    k +=1
-                X=200
-                D=df_PowerATE['최대허용비율'][0]
-                A=X*D
-                B=X*D
-                for i in df_addSmtAssyPower.index:
-                    if X==0 : Break
-                    if df_addSmtAssyPower['MSCODE'][:4] in df_PowerATE['Model'][0]:
-                        if X>0 and A > 0:
-                            if A > df_addSmtAssyPower['SMT반영_착공량'][i] * dict_Ate_T[df_PowerATE['Model'][0]] and X > df_addSmtAssyPower['SMT반영_착공량'][i] * dict_Ate_T[df_PowerATE['Model'][0]]:
-                                df_addSmtAssyPower['설비능력반영_착공량'][i] = df_addSmtAssyPower['SMT반영_착공량'][i]
-                                A += df_addSmtAssyPower['SMT반영_착공량'][i] * dict_Ate_T[df_PowerATE['Model'][0]]
-                                X -= df_addSmtAssyPower['SMT반영_착공량'][i] * dict_Ate_T[df_PowerATE['Model'][0]]
-                            elif X > df_addSmtAssyPower['SMT반영_착공량'][i] * dict_Ate_T[df_PowerATE['Model'][0]] and A < df_addSmtAssyPower['SMT반영_착공량'][i] * dict_Ate_T[df_PowerATE['Model'][0]]:
-                                df_addSmtAssyPower['설비능력반영_착공량'][i] = A // B
-                                X -= A
-                                A = 0
-                            elif X < df_addSmtAssyPower['SMT반영_착공량'][i] * dict_Ate_T[df_PowerATE['Model'][0]]:
-                                df_addSmtAssyPower['설비능력반영_착공량'][i] = X // dict_Ate_T[df_PowerATE['Model'][0]]
-                                Break
-                        else:
-                            continue
-                    elif df_addSmtAssyPower['MSCODE'][:4] in df_PowerATE['Model'][1]:
-                        if X>0 and B > 0:
-                            if B > df_addSmtAssyPower['SMT반영_착공량'][i] * dict_Ate_T[df_PowerATE['Model'][1]] and X > df_addSmtAssyPower['SMT반영_착공량'][i] * dict_Ate_T[df_PowerATE['Model'][1]]:
-                                df_addSmtAssyPower['설비능력반영_착공량'][i] = df_addSmtAssyPower['SMT반영_착공량'][i]
-                                B += df_addSmtAssyPower['SMT반영_착공량'][i] * dict_Ate_T[df_PowerATE['Model'][1]]
-                                X -= df_addSmtAssyPower['SMT반영_착공량'][i] * dict_Ate_T[df_PowerATE['Model'][1]]
-                            elif X > df_addSmtAssyPower['SMT반영_착공량'][i] * dict_Ate_T[df_PowerATE['Model'][1]] and A < df_addSmtAssyPower['SMT반영_착공량'][i] * dict_Ate_T[df_PowerATE['Model'][1]]:
-                                df_addSmtAssyPower['설비능력반영_착공량'][i] = A // B
-                                X -= B
-                                B = 0
-                            elif X < df_addSmtAssyPower['SMT반영_착공량'][i] * dict_Ate_T[df_PowerATE['Model'][1]]:
-                                df_addSmtAssyPower['설비능력반영_착공량'][i] = X // dict_Ate_T[df_PowerATE['Model'][1]]
-                                Break
-                        else:
-                            continue
+                k =0
+                X = 200
+                for i in df_PowerATE.index:
+                    dict_Ate_T[df_PowerATE['MODEL'][i]] = float(df_PowerATE['공수'][i])
+                    if df_PowerATE['최대허용비율'][i] == '' or df_PowerATE['최대허용비율'][i] =='nan':
+                        df_PowerATE['최대허용비율'][i] = df_PowerATE['최대허용비율'][i-1]
+                    dict_AteA[df_PowerATE['MODEL'][i]] = float(df_PowerATE['최대허용비율'][i])*X
+                    k += 1
 
+                for i in df_addSmtAssyPower.index:
+                    for j in range(0,k):
+                        if str(dict_Ate_T[df_PowerATE['MODEL'][k]]) in str(df_addSmtAssyPower['MSCODE']):
+                            if dict_AteA[df_PowerATE['MODEL'][k]] > 0:
+                                if dict_AteA[df_PowerATE['MODEL'][k]] > float(df_addSmtAssyPower['SMT반영_착공량'][i])*dict_AteA[df_PowerATE['MODEL'][k]]:
+                                    df_addSmtAssyPower['설비능력반영_착공량'][i] = df_addSmtAssyPower['SMT반영_착공량'][i]
+                                    dict_AteA[df_PowerATE['MODEL'][k]] -= float(df_addSmtAssyPower['SMT반영_착공량'][i])*dict_AteA[df_PowerATE['MODEL'][k]]
+                                else: 
+                        else:continue
+
+
+
+                # k=0
+                # # DB에 모델별 공수 추가
+                # for i in df_PowerATE.index: 
+                #     dict_Ate_T[df_PowerATE['MODEL'][i]] = df_PowerATE['공수'][i]
+                #     k +=1
+                # X=int(200)
+                # D=df_PowerATE['최대허용비율'][0]
+                # A=int(X*D)
+                # B=int(X*D)
+                # print(df_PowerATE['MODEL'][1])
+                # print(str(df_addSmtAssyPower['MSCODE'][1]))
+                # for i in df_addSmtAssyPower.index:
+                #     if X==0 : Break
+                #     if df_PowerATE['MODEL'][0] in str(df_addSmtAssyPower['MSCODE'][i]) :
+                #         if X>0 and A > 0:
+                #             if A > df_addSmtAssyPower['SMT반영_착공량'][i] * dict_Ate_T[df_PowerATE['MODEL'][0]] and X > df_addSmtAssyPower['SMT반영_착공량'][i] * dict_Ate_T[df_PowerATE['MODEL'][0]]:
+                #                 print(df_addSmtAssyPower['SMT반영_착공량'][i] * dict_Ate_T[df_PowerATE['MODEL'][0]])
+                #                 df_addSmtAssyPower['설비능력반영_착공량'][i] = df_addSmtAssyPower['SMT반영_착공량'][i]
+                #                 A -= df_addSmtAssyPower['SMT반영_착공량'][i] * dict_Ate_T[df_PowerATE['MODEL'][0]]
+                #                 X -= df_addSmtAssyPower['SMT반영_착공량'][i] * dict_Ate_T[df_PowerATE['MODEL'][0]]
+                #             elif X > df_addSmtAssyPower['SMT반영_착공량'][i] * dict_Ate_T[df_PowerATE['MODEL'][0]] and A < df_addSmtAssyPower['SMT반영_착공량'][i] * dict_Ate_T[df_PowerATE['MODEL'][0]]:
+                #                 df_addSmtAssyPower['설비능력반영_착공량'][i] = A // B
+                #                 X -= A
+                #                 A = 0
+                #             elif X < df_addSmtAssyPower['SMT반영_착공량'][i] * dict_Ate_T[df_PowerATE['MODEL'][0]]:
+                #                 df_addSmtAssyPower['설비능력반영_착공량'][i] = X // dict_Ate_T[df_PowerATE['MODEL'][0]]
+                #                 Break
+                #         else:
+                #             continue
+                #     elif df_PowerATE['MODEL'][1] in str(df_addSmtAssyPower['MSCODE'][i]):
+                #         if X>0 and B > 0:
+                #             if B > df_addSmtAssyPower['SMT반영_착공량'][i] * dict_Ate_T[df_PowerATE['MODEL'][1]] and X > df_addSmtAssyPower['SMT반영_착공량'][i] * dict_Ate_T[df_PowerATE['MODEL'][1]]:
+                #                 print(df_addSmtAssyPower['SMT반영_착공량'][i] * dict_Ate_T[df_PowerATE['MODEL'][1]])
+                #                 df_addSmtAssyPower['설비능력반영_착공량'][i] = df_addSmtAssyPower['SMT반영_착공량'][i]
+                #                 B -= df_addSmtAssyPower['SMT반영_착공량'][i] * dict_Ate_T[df_PowerATE['MODEL'][1]]
+                #                 X -= df_addSmtAssyPower['SMT반영_착공량'][i] * dict_Ate_T[df_PowerATE['MODEL'][1]]
+                #             elif X > df_addSmtAssyPower['SMT반영_착공량'][i] * dict_Ate_T[df_PowerATE['MODEL'][1]] and A < df_addSmtAssyPower['SMT반영_착공량'][i] * dict_Ate_T[df_PowerATE['MODEL'][1]]:
+                #                 df_addSmtAssyPower['설비능력반영_착공량'][i] = A // B
+                #                 X -= B
+                #                 B = 0
+                #             elif X < df_addSmtAssyPower['SMT반영_착공량'][i] * dict_Ate_T[df_PowerATE['MODEL'][1]]:
+                #                 df_addSmtAssyPower['설비능력반영_착공량'][i] = X // dict_Ate_T[df_PowerATE['MODEL'][1]]
+                #                 Break
+                #         else:
+                #             continue
+                df_addSmtAssyPower.to_excel(r'C:\Users\Administrator\Desktop\FAM3_Leveling-1\Debug\설비반영.xlsx')              
 
                 
                 ## KSM END ##
