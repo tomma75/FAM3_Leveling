@@ -1154,22 +1154,18 @@ class Ui_MainWindow(QMainWindow):
                             df_addSmtAssy['SMT반영_착공량'][i] = df_addSmtAssy['평준화_적용_착공량'][i]
                         
                     
-                    ##ksm ADD POWER st ## 나중에 잔여착공량추가
+                    ##ksm ADD POWER ST ## 나중에 잔여착공량추가
                 
                 df_addSmtAssy.to_excel('.\\debug\\flow9-2.xlsx')
                 for i in df_addSmtAssyPower.index:
                     if df_addSmtAssyPower['PRODUCT_TYPE'][i] == 'POWER':
                         dict_smt_name = defaultdict(list) #리스트초기화
                         dict_smt_name2 = defaultdict(list)
-                        #print(dict_smt_name)
-                        #print(dict_smt_name2)
                         t=0
                         for j in range(1,6):
-                            #print(df_addSmtAssyPower[f'ROW{str(j)}'][i])
                             if str(df_addSmtAssyPower[f'ROW{str(j)}'][i]) != '' and str(df_addSmtAssyPower[f'ROW{str(j)}'][i]) != 'nan':
                                 if df_addSmtAssyPower[f'ROW{str(j)}'][i] in dict_smtCnt:
                                     dict_smt_name[df_addSmtAssyPower[f'ROW{str(j)}'][i]] = int(dict_smtCnt[df_addSmtAssyPower[f'ROW{str(j)}'][i]])
-                                #SMT assy이름 = assy잔여수량
                                 else:
                                     logging.warning('「사양 : %s」의 SmtAssy가 %s 파일에 등록되지 않았습니다. 등록 후, 다시 실행해주세요.',
                                                     df_addSmtAssyPower['MS Code'][i],
@@ -1178,12 +1174,9 @@ class Ui_MainWindow(QMainWindow):
                                     break
                             else:
                                 break
-                        #print(sorted(dict_smt_name.items(),key=lambda x : x[1],reverse=False))
-                        dict_smt_name2 = OrderedDict(sorted(dict_smt_name.items(),key=lambda x : x[1],reverse=False))#한번에 처리하기위해 value값 내림차순으로 해서 딕셔너리 형태로 저장
-                        #print(dict_smt_name2)
+                        dict_smt_name2 = OrderedDict(sorted(dict_smt_name.items(),key=lambda x : x[1],reverse=False))#한번에 처리하기위해 value값 내림차순으로 해서 딕셔너리 형태로 저장       
                         if df_addSmtAssyPower['긴급오더'][i] == '대상':
                             for k in dict_smt_name2:
-                                #print(dict_smt_name2[f'{k}'])
                                 dict_smt_name2[f'{k}'] -= df_addSmtAssyPower['평준화_적용_착공량'][i]
                                 if dict_smt_name2[f'{k}'] < 0:
                                     logging.warning('「당일착공 대상 : %s」, 「사양 : %s」을 착공하기에는 「SmtAssy : %s」가 「%i 대」부족합니다. SmtAssy 제작을 지시해주세요. 당일착공 대상이므로 착공은 진행합니다.',
@@ -1203,7 +1196,7 @@ class Ui_MainWindow(QMainWindow):
                                 df_addSmtAssyPower['SMT반영_착공량'][i] = 0 #재고없으면 0
                 df_addSmtAssyPower.to_excel('.\\debug\\test2.xlsx')# SMT 재고고려 착공량 완료, 설비능력, 잔여착공량고려필요함
 
-                ## ksm END ##        
+                ## ksm ADD END ##        
                         #for j in range(1,6):
                         #    if df_addSmtAssy[f'ROW{str(j)}'][i] == '' or df_addSmtAssy[f'ROW{str(j)}'][i] == 'nan':
                         #        RT_smt = j # SMT 사용종류
@@ -1289,8 +1282,9 @@ class Ui_MainWindow(QMainWindow):
                             # print(i)
                             # print(f'설비명 : {ateName}')
                             # print('남은시간 : ' + str((dict_ate[ateName])))
-                ## KSM ADD st ##
-                df_PowerATE = pd.read_excel(r'.\\input\\DB\\FAM3 전원 LINE 생산 조건.xlsx',header=3)
+                ## KSM ADD ST ##
+                ## 2차 코드수정 ##
+                df_PowerATE = pd.read_excel(r'.\\input\\DB\\FAM3 전원 LINE 생산 조건.xlsx',header=2)
                 dict_Ate_T = defaultdict(list)
                 dict_AteA = defaultdict(list)
                 df_addSmtAssyPower['설비능력반영_착공량'] = 0
@@ -1298,23 +1292,30 @@ class Ui_MainWindow(QMainWindow):
                 X = 200
                 for i in df_PowerATE.index:
                     dict_Ate_T[df_PowerATE['MODEL'][i]] = float(df_PowerATE['공수'][i])
-                    if df_PowerATE['최대허용비율'][i] == '' or df_PowerATE['최대허용비율'][i] =='nan':
+                    if str(df_PowerATE['최대허용비율'][i]) == '' or str(df_PowerATE['최대허용비율'][i]) =='nan':
                         df_PowerATE['최대허용비율'][i] = df_PowerATE['최대허용비율'][i-1]
                     dict_AteA[df_PowerATE['MODEL'][i]] = float(df_PowerATE['최대허용비율'][i])*X
                     k += 1
-
                 for i in df_addSmtAssyPower.index:
                     for j in range(0,k):
-                        if str(dict_Ate_T[df_PowerATE['MODEL'][k]]) in str(df_addSmtAssyPower['MSCODE']):
-                            if dict_AteA[df_PowerATE['MODEL'][k]] > 0:
-                                if dict_AteA[df_PowerATE['MODEL'][k]] > float(df_addSmtAssyPower['SMT반영_착공량'][i])*dict_AteA[df_PowerATE['MODEL'][k]]:
-                                    df_addSmtAssyPower['설비능력반영_착공량'][i] = df_addSmtAssyPower['SMT반영_착공량'][i]
-                                    dict_AteA[df_PowerATE['MODEL'][k]] -= float(df_addSmtAssyPower['SMT반영_착공량'][i])*dict_AteA[df_PowerATE['MODEL'][k]]
-                                else: 
+                        if str(df_PowerATE['MODEL'][j]) in str(df_addSmtAssyPower['MSCODE'][i]):
+                            if dict_AteA[df_PowerATE['MODEL'][j]] > 0:
+                                if float(df_addSmtAssyPower['SMT반영_착공량'][i]) == 0 : continue
+                                if X > float(df_addSmtAssyPower['SMT반영_착공량'][i])*dict_Ate_T[df_PowerATE['MODEL'][j]]:
+                                    if dict_AteA[df_PowerATE['MODEL'][j]] > float(df_addSmtAssyPower['SMT반영_착공량'][i])*dict_Ate_T[df_PowerATE['MODEL'][j]]:
+                                        df_addSmtAssyPower['설비능력반영_착공량'][i] = df_addSmtAssyPower['SMT반영_착공량'][i]
+                                        dict_AteA[df_PowerATE['MODEL'][j]] -= float(df_addSmtAssyPower['SMT반영_착공량'][i])*dict_Ate_T[df_PowerATE['MODEL'][j]]
+                                        X -= float(df_addSmtAssyPower['SMT반영_착공량'][i])*dict_Ate_T[df_PowerATE['MODEL'][j]]
+                                    else:
+                                        df_addSmtAssyPower['설비능력반영_착공량'][i] = dict_AteA[df_PowerATE['MODEL'][j]] / dict_Ate_T[df_PowerATE['MODEL'][j]]
+                                        X -= dict_AteA[df_PowerATE['MODEL'][j]]
+                                        dict_AteA[df_PowerATE['MODEL'][j]] = 0
+                                else:
+                                    df_addSmtAssyPower['설비능력반영_착공량'][i] = X / dict_Ate_T[df_PowerATE['MODEL'][j]]
+                                    X = 0
+                                    
                         else:continue
-
-
-
+                ## 1차 코드작성 ##
                 # k=0
                 # # DB에 모델별 공수 추가
                 # for i in df_PowerATE.index: 
@@ -1363,7 +1364,7 @@ class Ui_MainWindow(QMainWindow):
                 df_addSmtAssyPower.to_excel(r'C:\Users\Administrator\Desktop\FAM3_Leveling-1\Debug\설비반영.xlsx')              
 
                 
-                ## KSM END ##
+                ## KSM EDD END ##
 
 
 
@@ -1377,7 +1378,7 @@ class Ui_MainWindow(QMainWindow):
                     else:
                         dict_integAteCnt[df_addSmtAssy['대표모델'][i]] = int(df_addSmtAssy['설비능력반영_착공량'][i])
                     df_addSmtAssy['대표모델별_누적착공량'][i] = dict_integAteCnt[df_addSmtAssy['대표모델'][i]]
-                #설비능력착공량과 하루평균생산대수를 비교하여 알람출력
+                #설비능력착공량과 하루평균생산대수를 비교하여 알람출력 + ksm : 부족한 수량만큼 알람
                 for key, value in dict_minContCnt.items():
                     if key in dict_integAteCnt:
                         if value[0] > dict_integAteCnt[key]:
@@ -1386,9 +1387,28 @@ class Ui_MainWindow(QMainWindow):
                                 str(value[1]),
                                 dict_integAteCnt[key],
                                 math.ceil(value[0]))      
-
                 df_addSmtAssy.to_excel('.\\debug\\flow13.xlsx')
-                
+
+                ## KSM ADD ST 221028 ##
+                df_addSmtAssyPower['대표모델별_누적착공량'] = ''
+                dict_integAteCntP = {}
+                for i in df_addSmtAssyPower.index:
+                    if df_addSmtAssyPower['대표모델'][i] in dict_integAteCntP:
+                        dict_integAteCntP[df_addSmtAssyPower['대표모델'][i]] += int(df_addSmtAssyPower['설비능력반영_착공량'][i])
+                    else:
+                        dict_integAteCntP[df_addSmtAssyPower['대표모델'][i]] = int(df_addSmtAssyPower['설비능력반영_착공량'][i])
+                    df_addSmtAssyPower['대표모델별_누적착공량'][i] = dict_integAteCntP[df_addSmtAssyPower['대표모델'][i]]
+                #설비능력착공량과 하루평균생산대수를 비교하여 알람출력 + ksm : 부족한 수량만큼 알람
+                for key, value in dict_minContCnt.items():
+                    if key in dict_integAteCntP:
+                        if value[0] > dict_integAteCntP[key]:
+                            logging.warning('「%s」 사양이 「완성지정일: %s」 까지 오늘 「착공수량: %i 대」로는 착공량 부족이 예상됩니다. 최소 필요 착공량은 「%i 대」 입니다.', 
+                                key, 
+                                str(value[1]),
+                                dict_integAteCntP[key],
+                                math.ceil(value[0]))      
+                df_addSmtAssyPower.to_excel('.\\debug\\대표모델별_Power.xlsx')
+                ## KSM ADD END 221028 ##
 
 
             self.runBtn.setEnabled(True)
