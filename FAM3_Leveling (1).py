@@ -1288,19 +1288,18 @@ class Ui_MainWindow(QMainWindow):
                 dict_Ate_T = defaultdict(list)
                 dict_AteA = defaultdict(list)
                 df_addSmtAssyPower['설비능력반영_착공량'] = 0
-                k =0
-                X = 200
+                X = 200 #추가(변수명)
                 for i in df_PowerATE.index:
                     dict_Ate_T[df_PowerATE['MODEL'][i]] = float(df_PowerATE['공수'][i])
                     if str(df_PowerATE['최대허용비율'][i]) == '' or str(df_PowerATE['최대허용비율'][i]) =='nan':
-                        df_PowerATE['최대허용비율'][i] = df_PowerATE['최대허용비율'][i-1]
+                        df_PowerATE['최대허용비율'][i] = df_PowerATE['최대허용비율'][i-1]#FFILL
                     dict_AteA[df_PowerATE['MODEL'][i]] = float(df_PowerATE['최대허용비율'][i])*X
-                    k += 1
                 for i in df_addSmtAssyPower.index:
-                    for j in range(0,k):
+                    for j in df_PowerATE.index:#키값
                         if str(df_PowerATE['MODEL'][j]) in str(df_addSmtAssyPower['MSCODE'][i]):
                             if dict_AteA[df_PowerATE['MODEL'][j]] > 0:
-                                if float(df_addSmtAssyPower['SMT반영_착공량'][i]) == 0 : continue
+                                if float(df_addSmtAssyPower['SMT반영_착공량'][i]) == 0 : 
+                                    continue
                                 if X > float(df_addSmtAssyPower['SMT반영_착공량'][i])*dict_Ate_T[df_PowerATE['MODEL'][j]]:
                                     if dict_AteA[df_PowerATE['MODEL'][j]] > float(df_addSmtAssyPower['SMT반영_착공량'][i])*dict_Ate_T[df_PowerATE['MODEL'][j]]:
                                         df_addSmtAssyPower['설비능력반영_착공량'][i] = df_addSmtAssyPower['SMT반영_착공량'][i]
@@ -1313,7 +1312,7 @@ class Ui_MainWindow(QMainWindow):
                                 else:
                                     df_addSmtAssyPower['설비능력반영_착공량'][i] = X / dict_Ate_T[df_PowerATE['MODEL'][j]]
                                     X = 0
-                                    
+                                    break#dk..
                         else:continue
                 ## 1차 코드작성 ##
                 # k=0
@@ -1398,7 +1397,7 @@ class Ui_MainWindow(QMainWindow):
                     else:
                         dict_integAteCntP[df_addSmtAssyPower['대표모델'][i]] = int(df_addSmtAssyPower['설비능력반영_착공량'][i])
                     df_addSmtAssyPower['대표모델별_누적착공량'][i] = dict_integAteCntP[df_addSmtAssyPower['대표모델'][i]]
-                #설비능력착공량과 하루평균생산대수를 비교하여 알람출력 + ksm : 부족한 수량만큼 알람
+                #설비능력착공량과 하루평균생산대수를 비교하여 알람출력 + ksm : 부족한 수량만큼 알람(파일로대체)
                 for key, value in dict_minContCnt.items():
                     if key in dict_integAteCntP:
                         if value[0] > dict_integAteCntP[key]:
