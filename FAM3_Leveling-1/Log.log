@@ -1,0 +1,18 @@
+10/14/2022 10:41:58:INFO:프로그램이 정상 기동했습니다
+10/14/2022 10:47:49:INFO:착공지정일이 2022-09-05 로 정상적으로 지정되었습니다.
+10/14/2022 10:49:15:INFO:프로그램이 정상 기동했습니다
+10/14/2022 10:49:34:INFO:착공지정일이 2022-09-02 로 정상적으로 지정되었습니다.
+10/14/2022 10:49:39:INFO:착공지정일이 2022-09-01 로 정상적으로 지정되었습니다.
+10/14/2022 10:59:26:INFO:프로그램이 정상 기동했습니다
+10/14/2022 10:59:39:INFO:착공지정일이 2022-09-01 로 정상적으로 지정되었습니다.
+10/14/2022 11:07:09:ERROR:.\\input\\Master_File\\20220901\\SOS2.xlsx 파일이 없습니다. 확인해주세요.
+10/14/2022 11:07:29:ERROR:.\\input\\Master_File\\20220901\\SOS2.xlsx 파일이 없습니다. 확인해주세요.
+10/14/2022 11:07:37:ERROR:.\\input\\Master_File\\20220901\\SOS2.xlsx 파일이 없습니다. 확인해주세요.
+10/14/2022 11:07:40:ERROR:.\\input\\Master_File\\20220901\\SOS2.xlsx 파일이 없습니다. 확인해주세요.
+10/14/2022 11:07:40:ERROR:.\\input\\Master_File\\20220901\\SOS2.xlsx 파일이 없습니다. 확인해주세요.
+10/14/2022 11:07:40:ERROR:.\\input\\Master_File\\20220901\\SOS2.xlsx 파일이 없습니다. 확인해주세요.
+10/14/2022 11:16:03:ERROR:list index out of range
+Traceback (most recent call last):
+  File "c:\Users\Administrator\Desktop\FAM3_Leveling\FAM3_Leveling-1\FAM3_Leveling.py", line 867, in startLeveling
+    df_levelingSp = pd.read_excel(list_masterFile[3])
+IndexError: list index out of range

@@ -839,7 +839,7 @@ class Ui_MainWindow(QMainWindow):
                     logging.info('전원기종 착공량이 입력되지 않아 전원기종 착공은 미실시 됩니다.')            
                 else:
                     powerOrderCnt = float(self.powerOrderinput.text())
-
+                #시작
                 #긴급오더, 홀딩오더 불러오기
                 emgLinkage = [str(self.listViewEmgLinkage.model().data(self.listViewEmgLinkage.model().index(x,0))) for x in range(self.listViewEmgLinkage.model().rowCount())]
                 emgmscode = [self.listViewEmgmscode.model().data(self.listViewEmgmscode.model().index(x,0)) for x in range(self.listViewEmgmscode.model().rowCount())]
