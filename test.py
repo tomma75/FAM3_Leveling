@@ -1,34 +1,82 @@
-from numpy import int32
+from codecs import ignore_errors
+import datetime
+import glob
+import logging
+from logging.handlers import RotatingFileHandler
+import os
+import re
+import math
+import time
+import numpy as np
+import openpyxl as xl
+from PyQt5 import QtCore, QtWidgets, QtGui
+from PyQt5.QtCore import Qt, QCoreApplication
+from PyQt5.QtGui import QDoubleValidator, QStandardItemModel, QIcon, QStandardItem, QIntValidator, QFont
+from PyQt5.QtWidgets import QMainWindow, QMessageBox, QProgressBar, QPlainTextEdit, QWidget, QGridLayout, QGroupBox, QLineEdit, QSizePolicy, QToolButton, QLabel, QFrame, QListView, QMenuBar, QStatusBar, QPushButton, QApplication, QCalendarWidget, QVBoxLayout, QFileDialog, QCheckBox
+from PyQt5.QtCore import pyqtSlot, pyqtSignal, QObject, QThread, QRect, QSize, QDate
 import pandas as pd
-from panel import Row
-
-df_power = pd.read_excel(r"C:\Users\Administrator\Desktop\파이썬과제\FA-M3착공\시작DATA\Data\0902\POWER.xlsx")
+import cx_Oracle
 
 
+df_addSmtAssy = pd.read_excel(r"C:\Users\Administrator\Desktop\FAM3_Leveling-1\Debug\flow9.xlsx")
+df_PowerSelect = df_addSmtAssy[df_addSmtAssy['PRODUCT_TYPE'] == 'POWER'].reset_index(drop=True)
+df_POWER = pd.read_excel(r"C:\Users\Administrator\Desktop\FAM3_Leveling-1\input\Master_File\20221006\POWER.xlsx")
+#POWER만 선택
+A_MAX = 200  #설정 최대생산대수
+B_MAX = 200  #설정 최대생산대수
+df_ATE_A = []
+add = []
+df_ATE_B = []
+CNT_ATE_A = 0 
+CNT_ATE_B = 0 
+##################TEST######################
+df_ATE_A = df_PowerSelect.loc[0:1]
+df_ATE_A = df_ATE_A.drop(1,axis=0)
+df_ATE_B = df_PowerSelect.loc[0:1]
+df_ATE_B = df_ATE_B.drop(1,axis=0)
 
-df_FP = [df_power.drop['Sequence No'][i] for i in range(len(df_power.index)) if df_power['Sequence No'][i] in 'D']
-# D로 시작하는 행 제거 -> 안됨 ㅠ
-df_FM = [df_macro.drop['평준화 GR NO'][i] for i in range(len(df_macro.index)) if df_macro['평준화 GR NO'][i] not in 'POWER']
-# POWER만 검색
-# 사용자가 착공확정수량 입력할 때 검사호기별, 재고 등 다 고려해서 적어야하는데 이걸 프로그램에서 검증해주는건가??
-df_FP.join(df_FM.set_index('Linkage Number')['착공확정수량'],on='Linkage Number')
-# 필터링된 파워 데이터프레임에 필터링된 매크로엑셀파일의 확정수량을 Vlookup으로 설정해줌
-df_final = [df_power.drop['착공확정수량'][i] for i in range(len(df_power.index)) if df_power['착공확정수량'][i] in '']
-# 착공확정수량이 Nan값이면 행 제거
-df_final['착공순번'] = [df_final['착공순번'][i] == j for i in range(df_final.index) for j in ((df_final.index)/5)]
-# 착공순번 column 생성 후 순번 지정
-df_final.sort_values('착공순번',ascending=True)
-# 착공순번 오름차순 설정
-df_final['착공순번'] = []
-
-
-#L1 = len(df_power.index)
-CG_DF_max = 100 # 착공확정수량 합
-CG_DF_ALam = 미착공수주잔 총합(열 더하는거) >[today() - df_power.sort_values('완성예정일',ascending=False)[0]] * CG_DF_max
-#day 뺀 값을 int형식으로 가져와야함
-for i in range(df_power.index):
-    while CG_DF_sum < CG_DF_max:
-        if df_power['미착공수주잔'][i] < CG_DF_max*0.5:
-            CG_DF_sum = df_power['미착공수주잔'][i] + CG_DF_sum
+############################################
+for i in range(len(df_PowerSelect.index)):
+    if df_PowerSelect['ATE_NO'][i] == 'A':
+        if A_MAX < CNT_ATE_A : continue    
+        CNT_ATE_A += df_PowerSelect['미착공수주잔'][i]  #최대수량까지 ADD
+        if CNT_ATE_A < A_MAX :
+            add = df_PowerSelect.loc[i:i+1]
+            add = add.drop(i+1,axis=0)
+            df_ATE_A = pd.merge(df_ATE_A,add,how='outer')
+            Save_BFCNT_A = CNT_ATE_A
         else:
-            df_power['완성예정일'][i]
+            df_PowerSelect['미착공수주잔'][i] = A_MAX - Save_BFCNT_A
+            add = df_PowerSelect.loc[i:i+1]
+            add = add.drop(i+1,axis=0)
+            df_ATE_A = pd.merge(df_ATE_A,add,how='outer')
+            df_ATE_A = df_ATE_A.astype({'Linkage Number':'str'})
+            # 어차피 착공내리면 다음날 새로 긁어서 하기때문에 수주잔 값 변경안해주어도 괜찮음
+            if CNT_ATE_A >A_MAX and CNT_ATE_B > B_MAX : break
+    elif df_PowerSelect['ATE_NO'][i] =='B':
+        if B_MAX < CNT_ATE_B : continue    
+        CNT_ATE_B += df_PowerSelect['미착공수주잔'][i]
+        if CNT_ATE_B < B_MAX :
+            add = df_PowerSelect.loc[i:i+1]
+            add = add.drop(i+1,axis=0)
+            df_ATE_B = pd.merge(df_ATE_B,add,how='outer')
+            Save_BFCNT_B = CNT_ATE_B
+        else:
+            df_PowerSelect['미착공수주잔'][i] = B_MAX - Save_BFCNT_B
+            add = df_PowerSelect.loc[i:i+1]
+            add = add.drop(i+1,axis=0)
+            df_ATE_B = pd.merge(df_ATE_B,add,how='outer')
+            df_ATE_B = df_ATE_B.astype({'Linkage Number':'str'})
+            # 어차피 착공내리면 다음날 새로 긁어서 하기때문에 수주잔 값 변경안해주어도 괜찮음
+            if CNT_ATE_A >A_MAX and CNT_ATE_B > B_MAX : break
+    else:
+        #QMessageBox.information(self, 'Error', '중복된 데이터가 있습니다.')
+        continue
+df_ATE_A = df_ATE_A[df_ATE_A['ATE_NO'] == 'A'].reset_index(drop=True)
+df_ATE_B = df_ATE_B[df_ATE_B['ATE_NO'] == 'B'].reset_index(drop=True)
+df_TH = pd.merge(df_ATE_A,df_ATE_B,how='outer').reset_index(drop=True)
+df_ATE_A.to_excel(r"C:\Users\Administrator\Desktop\FAM3_Leveling-1\ksmtest\testA.xlsx")
+df_ATE_B.to_excel(r"C:\Users\Administrator\Desktop\FAM3_Leveling-1\ksmtest\testB.xlsx")
+df_TH.to_excel(r"C:\Users\Administrator\Desktop\FAM3_Leveling-1\ksmtest\test_TH.xlsx")
+#for i in range(len(df_ATE_A.index)):
+

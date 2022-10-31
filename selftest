@@ -1,0 +1,33 @@
+import datetime
+import glob
+import logging
+from logging.handlers import RotatingFileHandler
+import os
+import re
+import math
+import time
+import numpy as np
+import openpyxl as xl
+from PyQt5 import QtCore, QtWidgets, QtGui
+from PyQt5.QtCore import Qt, QCoreApplication
+from PyQt5.QtGui import QDoubleValidator, QStandardItemModel, QIcon, QStandardItem, QIntValidator, QFont
+from PyQt5.QtWidgets import QMainWindow, QMessageBox, QProgressBar, QPlainTextEdit, QWidget, QGridLayout, QGroupBox, QLineEdit, QSizePolicy, QToolButton, QLabel, QFrame, QListView, QMenuBar, QStatusBar, QPushButton, QApplication, QCalendarWidget, QVBoxLayout, QFileDialog, QCheckBox
+from PyQt5.QtCore import pyqtSlot, pyqtSignal, QObject, QThread, QRect, QSize, QDate
+import pandas as pd
+import cx_Oracle
+
+
+df_addSmtAssy = pd.read_excel(r"C:\Users\alsdl\Desktop\FAM3_Leveling-1\FAM3_Leveling\Debug\flow9.xlsx")
+df_PowerSelect = df_addSmtAssy[df_addSmtAssy['PRODUCT_TYPE'] == 'POWER']
+#POWER만 선택
+A_MAX = 50
+CNT_ATE_A = 0
+test = df_PowerSelect['미착공수주잔']
+print(test)
+while CNT_ATE_A != A_MAX:
+    for i in range(len(str(df_PowerSelect['PRODUCT_TYPE'].index))):
+        if CNT_ATE_A < A_MAX:
+            CNT_ATE_A += df_PowerSelect['미착공수주잔'][i]
+        else:
+            break
+    
