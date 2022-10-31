@@ -1288,30 +1288,29 @@ class Ui_MainWindow(QMainWindow):
                 dict_Ate_T = defaultdict(list)
                 dict_AteA = defaultdict(list)
                 df_addSmtAssyPower['설비능력반영_착공량'] = 0
-                X = 200 #추가(변수명)
                 for i in df_PowerATE.index:
                     dict_Ate_T[df_PowerATE['MODEL'][i]] = float(df_PowerATE['공수'][i])
                     if str(df_PowerATE['최대허용비율'][i]) == '' or str(df_PowerATE['최대허용비율'][i]) =='nan':
                         df_PowerATE['최대허용비율'][i] = df_PowerATE['최대허용비율'][i-1]#FFILL
-                    dict_AteA[df_PowerATE['MODEL'][i]] = float(df_PowerATE['최대허용비율'][i])*X
+                    dict_AteA[df_PowerATE['MODEL'][i]] = float(df_PowerATE['최대허용비율'][i])*powerOrderCnt
                 for i in df_addSmtAssyPower.index:
                     for j in df_PowerATE.index:#키값
                         if str(df_PowerATE['MODEL'][j]) in str(df_addSmtAssyPower['MSCODE'][i]):
                             if dict_AteA[df_PowerATE['MODEL'][j]] > 0:
                                 if float(df_addSmtAssyPower['SMT반영_착공량'][i]) == 0 : 
                                     continue
-                                if X > float(df_addSmtAssyPower['SMT반영_착공량'][i])*dict_Ate_T[df_PowerATE['MODEL'][j]]:
+                                if powerOrderCnt > float(df_addSmtAssyPower['SMT반영_착공량'][i])*dict_Ate_T[df_PowerATE['MODEL'][j]]:
                                     if dict_AteA[df_PowerATE['MODEL'][j]] > float(df_addSmtAssyPower['SMT반영_착공량'][i])*dict_Ate_T[df_PowerATE['MODEL'][j]]:
                                         df_addSmtAssyPower['설비능력반영_착공량'][i] = df_addSmtAssyPower['SMT반영_착공량'][i]
                                         dict_AteA[df_PowerATE['MODEL'][j]] -= float(df_addSmtAssyPower['SMT반영_착공량'][i])*dict_Ate_T[df_PowerATE['MODEL'][j]]
-                                        X -= float(df_addSmtAssyPower['SMT반영_착공량'][i])*dict_Ate_T[df_PowerATE['MODEL'][j]]
+                                        powerOrderCnt -= float(df_addSmtAssyPower['SMT반영_착공량'][i])*dict_Ate_T[df_PowerATE['MODEL'][j]]
                                     else:
                                         df_addSmtAssyPower['설비능력반영_착공량'][i] = dict_AteA[df_PowerATE['MODEL'][j]] / dict_Ate_T[df_PowerATE['MODEL'][j]]
-                                        X -= dict_AteA[df_PowerATE['MODEL'][j]]
+                                        powerOrderCnt -= dict_AteA[df_PowerATE['MODEL'][j]]
                                         dict_AteA[df_PowerATE['MODEL'][j]] = 0
                                 else:
-                                    df_addSmtAssyPower['설비능력반영_착공량'][i] = X / dict_Ate_T[df_PowerATE['MODEL'][j]]
-                                    X = 0
+                                    df_addSmtAssyPower['설비능력반영_착공량'][i] = powerOrderCnt / dict_Ate_T[df_PowerATE['MODEL'][j]]
+                                    powerOrderCnt = 0
                                     break#dk..
                         else:continue
                 ## 1차 코드작성 ##
