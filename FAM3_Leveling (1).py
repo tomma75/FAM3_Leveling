@@ -1288,11 +1288,38 @@ class Ui_MainWindow(QMainWindow):
                 dict_MODEL_TE = defaultdict(list)
                 dict_MODEL_Ra = defaultdict(list)
                 df_addSmtAssyPower['설비능력반영_착공량'] = 0
+<<<<<<< HEAD
+=======
                 powerOrderCnt_copy = powerOrderCnt
                 
+>>>>>>> 288c337fe484a3713aab91d3959db03838749ef9
                 for i in df_PowerATE.index:
                     dict_MODEL_TE[df_PowerATE['MODEL'][i]] = float(df_PowerATE['공수'][i])
                     if str(df_PowerATE['최대허용비율'][i]) == '' or str(df_PowerATE['최대허용비율'][i]) =='nan':
+<<<<<<< HEAD
+                        df_PowerATE['최대허용비율'][i] = df_PowerATE['최대허용비율'][i-1]#FFILL
+                    dict_AteA[df_PowerATE['MODEL'][i]] = float(df_PowerATE['최대허용비율'][i])*powerOrderCnt
+                for i in df_addSmtAssyPower.index:
+                    for j in df_PowerATE.index:#키값
+                        if str(df_PowerATE['MODEL'][j]) in str(df_addSmtAssyPower['MSCODE'][i]):
+                            if dict_AteA[df_PowerATE['MODEL'][j]] > 0:
+                                if float(df_addSmtAssyPower['SMT반영_착공량'][i]) == 0 : 
+                                    continue
+                                if powerOrderCnt > float(df_addSmtAssyPower['SMT반영_착공량'][i])*dict_Ate_T[df_PowerATE['MODEL'][j]]:
+                                    if dict_AteA[df_PowerATE['MODEL'][j]] > float(df_addSmtAssyPower['SMT반영_착공량'][i])*dict_Ate_T[df_PowerATE['MODEL'][j]]:
+                                        df_addSmtAssyPower['설비능력반영_착공량'][i] = df_addSmtAssyPower['SMT반영_착공량'][i]
+                                        dict_AteA[df_PowerATE['MODEL'][j]] -= float(df_addSmtAssyPower['SMT반영_착공량'][i])*dict_Ate_T[df_PowerATE['MODEL'][j]]
+                                        powerOrderCnt -= float(df_addSmtAssyPower['SMT반영_착공량'][i])*dict_Ate_T[df_PowerATE['MODEL'][j]]
+                                    else:
+                                        df_addSmtAssyPower['설비능력반영_착공량'][i] = dict_AteA[df_PowerATE['MODEL'][j]] / dict_Ate_T[df_PowerATE['MODEL'][j]]
+                                        powerOrderCnt -= dict_AteA[df_PowerATE['MODEL'][j]]
+                                        dict_AteA[df_PowerATE['MODEL'][j]] = 0
+                                else:
+                                    df_addSmtAssyPower['설비능력반영_착공량'][i] = powerOrderCnt / dict_Ate_T[df_PowerATE['MODEL'][j]]
+                                    powerOrderCnt = 0
+                                    break#dk..
+                        else:continue
+=======
                         df_PowerATE['최대허용비율'][i] = df_PowerATE['최대허용비율'].ffill
                     dict_MODEL_Ra[df_PowerATE['MODEL'][i]] = float(df_PowerATE['최대허용비율'][i])*powerOrderCnt_copy
                 for i in df_addSmtAssyPower.index:
@@ -1320,6 +1347,7 @@ class Ui_MainWindow(QMainWindow):
                                 break#dk..
                     else:
                         continue
+>>>>>>> 288c337fe484a3713aab91d3959db03838749ef9
                 ## 1차 코드작성 ##
                 # k=0
                 # # DB에 모델별 공수 추가
