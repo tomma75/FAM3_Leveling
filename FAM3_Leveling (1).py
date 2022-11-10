@@ -932,6 +932,7 @@ class Ui_MainWindow(QMainWindow):
                 df_levelingMainUncorSeq = df_levelingMain[df_levelingMain['Sequence No']=='Uncor']
                 df_levelingMain = pd.concat([df_levelingMainDropSEQ, df_levelingMainUndepSeq, df_levelingMainUncorSeq])
                 df_levelingMain = df_levelingMain.reset_index(drop=True)
+                df_levelingMain.to_excel('.\\debug\\flow1_main.xlsx')
                 # df_levelingMain['미착공수량'] = df_levelingMain.groupby('Linkage Number')['Linkage Number'].transform('size')
 
                 #미착공 대상만 추출(특수)
@@ -1650,6 +1651,48 @@ class Ui_MainWindow(QMainWindow):
                                 math.ceil(value[0]))      
                 df_addSmtAssyPower.to_excel('.\\debug\\대표모델별_Power.xlsx')
                 ## KSM ADD END 221028 ##
+
+                ## KSM ADD 221110 레벨링##
+                df_levelingPower = pd.merge(df_addSmtAssyPower,df_levelingMain,left_on='LINKAGE NO',right_on='Linkage Number',how='right')
+                df_levelingPower = df_levelingPower.drop_duplicates(subset='Linkage Number_y')
+                df_levelingPower = df_levelingPower.reset_index(drop=True)
+                df_levelingPower.to_excel(r'C:\Users\Administrator\Desktop\테스트\테스트2.xlsx')
+                df_levelingPower= df_levelingPower.dropna(subset=['Linkage Number_x'])
+                df_levelingPower = df_levelingPower.rename(columns={'Linkage Number_y':'Linkage Number'})
+                df_levelingPower = df_levelingPower.reset_index(drop=True)
+                df_levelingPower['No (*)'] = (df_levelingPower.index.astype(int) + 1) * 10
+                df_levelingPower['Scheduled Start Date (*)'] = 'test' #self.labelDate.text()
+                df_levelingPower['Planned Order'] = df_levelingPower['Planned Order'].astype(int).astype(str).str.zfill(10)
+                df_levelingPower['Scheduled End Date'] = df_levelingPower['Scheduled End Date'].astype(str).str.zfill(10)
+                df_levelingPower['Specified Start Date'] = df_levelingPower['Specified Start Date'].astype(str).str.zfill(10)
+                df_levelingPower['Specified End Date'] = df_levelingPower['Specified End Date'].astype(str).str.zfill(10)
+                df_levelingPower['Spec Freeze Date'] = df_levelingPower['Spec Freeze Date'].astype(str).str.zfill(10)
+                df_levelingPower['Component Number'] = df_levelingPower['Component Number'].astype(int).astype(str).str.zfill(4)
+                dfMergeOrderResult = df_levelingPower[['No (*)', 
+                                                                                'Sequence No', 
+                                                                                'Production Order', 
+                                                                                'Planned Order', 
+                                                                                'Manual', 
+                                                                                'Scheduled Start Date (*)', 
+                                                                                'Scheduled End Date', 
+                                                                                'Specified Start Date', 
+                                                                                'Specified End Date', 
+                                                                                'Demand destination country', 
+                                                                                'MS-CODE', 
+                                                                                'Allocate', 
+                                                                                'Spec Freeze Date', 
+                                                                                'Linkage Number', 
+                                                                                'Order Number', 
+                                                                                'Order Item', 
+                                                                                'Combination flag', 
+                                                                                'Project Definition', 
+                                                                                'Error message', 
+                                                                                'Leveling Group', 
+                                                                                'Leveling Class', 
+                                                                                'Planning Plant', 
+                                                                                'Component Number', 
+                                                                                'Serial Number']]
+                dfMergeOrderResult = dfMergeOrderResult.reset_index(drop=True)
 
 
             self.runBtn.setEnabled(True)

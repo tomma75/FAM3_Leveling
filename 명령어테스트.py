@@ -89,6 +89,18 @@ def Alarm_all(df_sum,df_det,div,msc,smt,amo,ate,niz_a,niz_m,msg,ln,oq,sq,pt,nt,e
                 '완성예정일' : ecd
             },ignore_index=True)
             return(df_sum,df_det)
+#===================================================ksm add st 11/10 이미추가돼있음
+df_levelingMain = pd.read_excel(r'C:\Users\Administrator\Desktop\FAM3_Leveling-1\input\Master_File\20220901\POWER.xlsx')
+df_levelingMainDropSEQ = df_levelingMain[df_levelingMain['Sequence No'].isnull()]
+df_levelingMainUndepSeq = df_levelingMain[df_levelingMain['Sequence No']=='Undep']
+df_levelingMainUncorSeq = df_levelingMain[df_levelingMain['Sequence No']=='Uncor']
+df_levelingMain = pd.concat([df_levelingMainDropSEQ, df_levelingMainUndepSeq, df_levelingMainUncorSeq])
+df_levelingMain['Linkage Number'] = df_levelingMain['Linkage Number'].astype(str)
+df_levelingMain = df_levelingMain.reset_index(drop=True)
+
+df_levelingMain.to_excel(r'C:\Users\Administrator\Desktop\테스트\POWER_미착공만.xlsx')
+#====================================================add end 11/10
+
 df_joinSmt = pd.read_excel(r'C:\Users\Administrator\Desktop\FAM3_Leveling-1\Debug\flow6.xlsx')
 dict_smtCnt = {}
 for i in df_joinSmt.index:
@@ -156,8 +168,7 @@ for i in df_addSmtAssyPower.index:
                 break
         else:
             break
-    dict_smt_name2 = OrderedDict(sorted(dict_smt_name.items(),key=lambda x : x[1],reverse=False))#한번에 처리하기위해 value값 내림차순으로 해서 딕셔너리 형태로 저장 
-    print(dict_smt_name2)      
+    dict_smt_name2 = OrderedDict(sorted(dict_smt_name.items(),key=lambda x : x[1],reverse=False))#한번에 처리하기위해 value값 내림차순으로 해서 딕셔너리 형태로 저장     
     if str(df_addSmtAssyPower['긴급오더'][i]) == '대상':
         for k in dict_smt_name2:
             dict_smtCnt[f'{k}'] -= df_addSmtAssyPower['평준화_적용_착공량'][i]
@@ -169,7 +180,6 @@ for i in df_addSmtAssyPower.index:
         if t==1 :  continue
         for k in dict_smt_name2:
             if dict_smt_name2[f'{k}'] > 0 :
-                print(dict_smt_name2[f'{next(iter(dict_smt_name2))}'])
                 if dict_smt_name2[f'{next(iter(dict_smt_name2))}'] > df_addSmtAssyPower['평준화_적용_착공량'][i] : #사용하는 smt assy 들의 재고수량이 평준화 적용착공량보다 크면(생산여유재고있으면)
                     df_addSmtAssyPower['SMT반영_착공량'][i] = df_addSmtAssyPower['평준화_적용_착공량'][i] # 평준화 적용착공량으로 착공오더내림
                     dict_smtCnt[next(iter(dict_smt_name2))] -= df_addSmtAssyPower['평준화_적용_착공량'][i]
@@ -234,6 +244,7 @@ df_PowerATE = pd.read_excel(r'C:\Users\Administrator\Desktop\FAM3_Leveling-1\inp
 dict_MODEL_TE = defaultdict(list)
 dict_MODEL_Ra = defaultdict(list)
 dict_MODEL_Ate = defaultdict(list)
+dict_POWERMODEL_cnt = defaultdict(list)
 df_addSmtAssyPower['설비능력반영합'] = 0
 df_addSmtAssyPower['설비능력반영_착공공수'] = 0
 df_addSmtAssyPower['설비능력반영_착공공수_잔여'] = 0 #add 11/04 잔여
@@ -365,7 +376,49 @@ df_explain.to_excel(writer,sheet_name='설명')
 writer.save()
 
 df_addSmtAssyPower.to_excel(r'C:\Users\Administrator\Desktop\테스트\설비.xlsx')
+#ksm add st 11/10 레벨링
 
+df_levelingPower = pd.merge(df_addSmtAssyPower,df_levelingMain,left_on='LINKAGE NO',right_on='Linkage Number',how='right')
+df_levelingPower = df_levelingPower.drop_duplicates(subset='Linkage Number_y')
+df_levelingPower = df_levelingPower.reset_index(drop=True)
+df_levelingPower.to_excel(r'C:\Users\Administrator\Desktop\테스트\테스트2.xlsx')
+df_levelingPower= df_levelingPower.dropna(subset=['Linkage Number_x'])
+df_levelingPower = df_levelingPower.rename(columns={'Linkage Number_y':'Linkage Number'})
+df_levelingPower = df_levelingPower.reset_index(drop=True)
+df_levelingPower['No (*)'] = (df_levelingPower.index.astype(int) + 1) * 10
+df_levelingPower['Scheduled Start Date (*)'] = 'test' #self.labelDate.text()
+df_levelingPower['Planned Order'] = df_levelingPower['Planned Order'].astype(int).astype(str).str.zfill(10)
+df_levelingPower['Scheduled End Date'] = df_levelingPower['Scheduled End Date'].astype(str).str.zfill(10)
+df_levelingPower['Specified Start Date'] = df_levelingPower['Specified Start Date'].astype(str).str.zfill(10)
+df_levelingPower['Specified End Date'] = df_levelingPower['Specified End Date'].astype(str).str.zfill(10)
+df_levelingPower['Spec Freeze Date'] = df_levelingPower['Spec Freeze Date'].astype(str).str.zfill(10)
+df_levelingPower['Component Number'] = df_levelingPower['Component Number'].astype(int).astype(str).str.zfill(4)
+dfMergeOrderResult = df_levelingPower[['No (*)', 
+                                                                'Sequence No', 
+                                                                'Production Order', 
+                                                                'Planned Order', 
+                                                                'Manual', 
+                                                                'Scheduled Start Date (*)', 
+                                                                'Scheduled End Date', 
+                                                                'Specified Start Date', 
+                                                                'Specified End Date', 
+                                                                'Demand destination country', 
+                                                                'MS-CODE', 
+                                                                'Allocate', 
+                                                                'Spec Freeze Date', 
+                                                                'Linkage Number', 
+                                                                'Order Number', 
+                                                                'Order Item', 
+                                                                'Combination flag', 
+                                                                'Project Definition', 
+                                                                'Error message', 
+                                                                'Leveling Group', 
+                                                                'Leveling Class', 
+                                                                'Planning Plant', 
+                                                                'Component Number', 
+                                                                'Serial Number']]
+dfMergeOrderResult = dfMergeOrderResult.reset_index(drop=True)
+dfMergeOrderResult.to_excel(r'C:\Users\Administrator\Desktop\테스트\머지.xlsx')
 
 # ===========================================================end
 
