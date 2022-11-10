@@ -1229,13 +1229,18 @@ class Ui_MainWindow(QMainWindow):
                     dict_smt_name2 = defaultdict(list)
                     t=0
                     for j in range(1,6):
+                        if str(df_addSmtAssyPower[f'ROW{str(1)}'][i]) == '' and str(df_addSmtAssyPower[f'ROW{str(1)}'][i]) == 'nan':
+                            df_SMT_Alarm,df_Spcf_Alarm =Alarm_all(df_SMT_Alarm,df_Spcf_Alarm,'기타',df_addSmtAssyPower['MSCODE'][i],df_addSmtAssyPower[f'ROW{str(j)}'][i],
+                            0,'-',0,0,'SMT ASSY가 등록되지 않았습니다. 등록 후 다시 실행해주세요.',str(df_addSmtAssyPower['LINKAGE NO'][i]),
+                            df_addSmtAssyPower['평준화_적용_착공량'][i],0,0,0,df_addSmtAssyPower['완성\n지정일'][i])
                         if str(df_addSmtAssyPower[f'ROW{str(j)}'][i]) != '' and str(df_addSmtAssyPower[f'ROW{str(j)}'][i]) != 'nan':
                             if df_addSmtAssyPower[f'ROW{str(j)}'][i] in dict_smtCnt:
                                 dict_smt_name[df_addSmtAssyPower[f'ROW{str(j)}'][i]] = int(dict_smtCnt[df_addSmtAssyPower[f'ROW{str(j)}'][i]])
                             else:
-                                df_SMT_Alarm,df_Spcf_Alarm =Alarm_all(df_SMT_Alarm,df_Spcf_Alarm,'기타',df_addSmtAssyPower['MSCODE'][i],df_addSmtAssyPower[f'ROW{str(j)}'][i],
-                                0,'-',0,0,'SMT ASSY가 등록되지 않았습니다. 등록 후 다시 실행해주세요.',str(df_addSmtAssyPower['LINKAGE NO'][i]),
-                                df_addSmtAssyPower['평준화_적용_착공량'][i],0,0,0,df_addSmtAssyPower['완성\n지정일'][i])
+                                dict_smt_name[df_addSmtAssyPower[f'ROW{str(j)}'][i]] = 0 #11/08
+                                # df_SMT_Alarm,df_Spcf_Alarm =Alarm_all(df_SMT_Alarm,df_Spcf_Alarm,'기타',df_addSmtAssyPower['MSCODE'][i],df_addSmtAssyPower[f'ROW{str(j)}'][i],
+                                # 0,'-',0,0,'SMT ASSY가 등록되지 않았습니다. 등록 후 다시 실행해주세요.',str(df_addSmtAssyPower['LINKAGE NO'][i]),
+                                # df_addSmtAssyPower['평준화_적용_착공량'][i],0,0,0,df_addSmtAssyPower['완성\n지정일'][i])
                                 # df_SMT_Alarm = df_SMT_Alarm.append({
                                 #                 '분류' : '기타',
                                 #                 'MS CODE' : df_addSmtAssyPower['MSCODE'][i],
@@ -1600,7 +1605,6 @@ class Ui_MainWindow(QMainWindow):
                 #             continue
                 df_addSmtAssyPower.to_excel(r'C:\Users\Administrator\Desktop\FAM3_Leveling-1\Debug\설비반영.xlsx')              
 
-                
                 ## KSM EDD END ##
 
 
