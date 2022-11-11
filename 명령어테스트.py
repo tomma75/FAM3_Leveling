@@ -244,7 +244,7 @@ df_PowerATE = pd.read_excel(r'C:\Users\Administrator\Desktop\FAM3_Leveling-1\inp
 dict_MODEL_TE = defaultdict(list)
 dict_MODEL_Ra = defaultdict(list)
 dict_MODEL_Ate = defaultdict(list)
-dict_POWERMODEL_cnt = defaultdict(list)
+dict_cycling_cnt = defaultdict(list) #add 11/11 사이클링
 df_addSmtAssyPower['설비능력반영합'] = 0
 df_addSmtAssyPower['설비능력반영_착공공수'] = 0
 df_addSmtAssyPower['설비능력반영_착공공수_잔여'] = 0 #add 11/04 잔여
@@ -336,6 +336,8 @@ for i in df_addSmtAssyPower.index: #add 11/04 잔여
         continue
 for i in df_addSmtAssyPower.index:
     df_addSmtAssyPower['설비능력반영합'][i] = df_addSmtAssyPower['설비능력반영_착공공수'][i] + df_addSmtAssyPower['설비능력반영_착공공수_잔여'][i]
+    dict_cycling_cnt[df_addSmtAssyPower['Linkage Number'][i]] = df_addSmtAssyPower['설비능력반영_착공량'][i] #사이클링 11/11
+
 zero = df_addSmtAssyPower[df_addSmtAssyPower['설비능력반영합']==0].index
 df_addSmtAssyPower.drop(zero, inplace=True)
 df_addSmtAssyPower = df_addSmtAssyPower.drop(['설비능력반영합'],axis='columns')
@@ -379,12 +381,85 @@ df_addSmtAssyPower.to_excel(r'C:\Users\Administrator\Desktop\테스트\설비.xl
 #ksm add st 11/10 레벨링
 
 df_levelingPower = pd.merge(df_addSmtAssyPower,df_levelingMain,left_on='LINKAGE NO',right_on='Linkage Number',how='right')
-df_levelingPower = df_levelingPower.drop_duplicates(subset='Linkage Number_y')
-df_levelingPower = df_levelingPower.reset_index(drop=True)
-df_levelingPower.to_excel(r'C:\Users\Administrator\Desktop\테스트\테스트2.xlsx')
-df_levelingPower= df_levelingPower.dropna(subset=['Linkage Number_x'])
-df_levelingPower = df_levelingPower.rename(columns={'Linkage Number_y':'Linkage Number'})
-df_levelingPower = df_levelingPower.reset_index(drop=True)
+df_levelingPower = df_levelingPower.dropna(subset=['설비능력반영_착공량'])
+df_levelingPower = df_levelingPower.sort_values(by=['MS-CODE',
+                                                'Scheduled End Date',],
+                                                ascending=[True,
+                                                            True])
+df_levelingPower = df_levelingPower.rename(columns={'Linkage Number_y' : 'Linkage Number'})
+df_levelingPower.to_excel(r'C:\Users\Administrator\Desktop\테스트\테스트1.xlsx')
+df_levelingPower['No (*)'] = (df_levelingPower.index.astype(int) + 1) * 10
+df_levelingPower['Scheduled Start Date (*)'] = 'test' #self.labelDate.text()
+df_levelingPower['Planned Order'] = df_levelingPower['Planned Order'].astype(int).astype(str).str.zfill(10)
+df_levelingPower['Scheduled End Date'] = df_levelingPower['Scheduled End Date'].astype(str).str.zfill(10)
+df_levelingPower['Specified Start Date'] = df_levelingPower['Specified Start Date'].astype(str).str.zfill(10)
+df_levelingPower['Specified End Date'] = df_levelingPower['Specified End Date'].astype(str).str.zfill(10)
+df_levelingPower['Spec Freeze Date'] = df_levelingPower['Spec Freeze Date'].astype(str).str.zfill(10)
+df_levelingPower['Component Number'] = df_levelingPower['Component Number'].astype(int).astype(str).str.zfill(4)
+dfMergeOrderResult = df_levelingPower[['No (*)', 
+                                                                'Sequence No', 
+                                                                'Production Order', 
+                                                                'Planned Order', 
+                                                                'Manual', 
+                                                                'Scheduled Start Date (*)', 
+                                                                'Scheduled End Date', 
+                                                                'Specified Start Date', 
+                                                                'Specified End Date', 
+                                                                'Demand destination country', 
+                                                                'MS-CODE', 
+                                                                'Allocate', 
+                                                                'Spec Freeze Date', 
+                                                                'Linkage Number', 
+                                                                'Order Number', 
+                                                                'Order Item', 
+                                                                'Combination flag', 
+                                                                'Project Definition', 
+                                                                'Error message', 
+                                                                'Leveling Group', 
+                                                                'Leveling Class', 
+                                                                'Planning Plant', 
+                                                                'Component Number', 
+                                                                'Serial Number']]
+dfMergeOrderResult.to_excel(r'C:\Users\Administrator\Desktop\테스트\테스트2.xlsx')
+df_cycling = pd.DataFrame(columns={'No (*)', 
+                                                                'Sequence No', 
+                                                                'Production Order', 
+                                                                'Planned Order', 
+                                                                'Manual', 
+                                                                'Scheduled Start Date (*)', 
+                                                                'Scheduled End Date', 
+                                                                'Specified Start Date', 
+                                                                'Specified End Date', 
+                                                                'Demand destination country', 
+                                                                'MS-CODE', 
+                                                                'Allocate', 
+                                                                'Spec Freeze Date', 
+                                                                'Linkage Number', 
+                                                                'Order Number', 
+                                                                'Order Item', 
+                                                                'Combination flag', 
+                                                                'Project Definition', 
+                                                                'Error message', 
+                                                                'Leveling Group', 
+                                                                'Leveling Class', 
+                                                                'Planning Plant', 
+                                                                'Component Number', 
+                                                                'Serial Number',
+                                                                'Leveling'})
+
+for i in dfMergeOrderResult.index:
+    add = dfMergeOrderResult.loc[i]
+    print(add)
+    print(dict_cycling_cnt[dfMergeOrderResult['Linkage Number'][i]])
+    if dict_cycling_cnt[dfMergeOrderResult['Linkage Number'][i]] > 0:
+        df_cycling = df_cycling.append(add,ignore_index = True)
+        dict_cycling_cnt[dfMergeOrderResult['Linkage Number'][i]] -= 1
+    else:
+        continue
+    
+df_cycling.to_excel(r'C:\Users\Administrator\Desktop\테스트\테스트랏.xlsx')
+
+
 df_levelingPower['No (*)'] = (df_levelingPower.index.astype(int) + 1) * 10
 df_levelingPower['Scheduled Start Date (*)'] = 'test' #self.labelDate.text()
 df_levelingPower['Planned Order'] = df_levelingPower['Planned Order'].astype(int).astype(str).str.zfill(10)
