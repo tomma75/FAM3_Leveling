@@ -249,7 +249,7 @@ df_addSmtAssyPower['설비능력반영합'] = 0
 df_addSmtAssyPower['설비능력반영_착공공수'] = 0
 df_addSmtAssyPower['설비능력반영_착공공수_잔여'] = 0 #add 11/04 잔여
 df_addSmtAssyPower['설비능력반영_착공량'] = 0
-powerOrderCnt_copy = 500 #공수설정
+powerOrderCnt_copy = 200 #공수설정
 dict_Power_less_add = defaultdict(list)
 for i in df_PowerATE.index:
     dict_MODEL_TE[df_PowerATE['MODEL'][i]] = float(df_PowerATE['공수'][i])
@@ -327,11 +327,15 @@ for i in df_addSmtAssyPower.index: #add 11/04 잔여
                 dict_MODEL_Ra[str(df_addSmtAssyPower['MSCODE'][i])[:4]] = 0
         elif powerOrderCnt_copy == 0 or powerOrderCnt_copy <0 :
             break
+        elif powerOrderCnt_copy < float(df_addSmtAssyPower['SMT반영_착공량_잔여'][i])*dict_MODEL_TE[str(df_addSmtAssyPower['MSCODE'][i])[:4]]:
+            if dict_MODEL_Ra[str(df_addSmtAssyPower['MSCODE'][i])[:4]] > float(df_addSmtAssyPower['SMT반영_착공량_잔여'][i])*dict_MODEL_TE[str(df_addSmtAssyPower['MSCODE'][i])[:4]]:
+                df_addSmtAssyPower['설비능력반영_착공공수_잔여'][i] = powerOrderCnt_copy
+                df_addSmtAssyPower['설비능력반영_착공량'][i] += math.ceil(powerOrderCnt_copy / dict_MODEL_TE[str(df_addSmtAssyPower['MSCODE'][i])[:4]])
+                powerOrderCnt_copy = 0
+            else:
+                continue
         else:
-            df_addSmtAssyPower['설비능력반영_착공공수_잔여'][i] = powerOrderCnt_copy
-            df_addSmtAssyPower['설비능력반영_착공량'][i] += math.ceil(powerOrderCnt_copy / dict_MODEL_TE[str(df_addSmtAssyPower['MSCODE'][i])[:4]])
-            powerOrderCnt_copy = 0
-            break
+            continue
     else:
         continue
 for i in df_addSmtAssyPower.index:
@@ -363,7 +367,7 @@ df_SMT_Alarm = df_SMT_Alarm.reset_index(drop=True)
 df_SMT_Alarm.index = df_SMT_Alarm.index+1
 df_Spcf_Alarm = df_Spcf_Alarm.reset_index(drop=True)
 df_Spcf_Alarm.index = df_Spcf_Alarm.index+1
-df_explain = pd.DataFrame({'분류': ['1','2','기타','폴더','파일명'] ,
+df_explain = pd.DataFrame({'분류': ['1','2','기타1','폴더','파일명'] ,
                             '분류별 상황' : ['DB상의 Smt Assy가 부족하여 해당 MS-Code를 착공 내릴 수 없는 경우',
                                             '당일 착공분(or 긴급착공분)에 대해 검사설비 능력이 부족할 경우',
                                             'MS-Code와 일치하는 Smt Assy가 마스터 파일에 없는 경우',
@@ -378,7 +382,7 @@ df_explain.to_excel(writer,sheet_name='설명')
 writer.save()
 
 df_addSmtAssyPower.to_excel(r'C:\Users\Administrator\Desktop\테스트\설비.xlsx')
-#ksm add st 11/10 레벨링
+#ksm add st 11/10 사이클링
 
 df_levelingPower = pd.merge(df_addSmtAssyPower,df_levelingMain,left_on='LINKAGE NO',right_on='Linkage Number',how='right')
 df_levelingPower = df_levelingPower.dropna(subset=['설비능력반영_착공량'])
@@ -387,88 +391,75 @@ df_levelingPower = df_levelingPower.sort_values(by=['MS-CODE',
                                                 ascending=[True,
                                                             True])
 df_levelingPower = df_levelingPower.rename(columns={'Linkage Number_y' : 'Linkage Number'})
-df_levelingPower.to_excel(r'C:\Users\Administrator\Desktop\테스트\테스트1.xlsx')
-df_levelingPower['No (*)'] = (df_levelingPower.index.astype(int) + 1) * 10
-df_levelingPower['Scheduled Start Date (*)'] = 'test' #self.labelDate.text()
-df_levelingPower['Planned Order'] = df_levelingPower['Planned Order'].astype(int).astype(str).str.zfill(10)
-df_levelingPower['Scheduled End Date'] = df_levelingPower['Scheduled End Date'].astype(str).str.zfill(10)
-df_levelingPower['Specified Start Date'] = df_levelingPower['Specified Start Date'].astype(str).str.zfill(10)
-df_levelingPower['Specified End Date'] = df_levelingPower['Specified End Date'].astype(str).str.zfill(10)
-df_levelingPower['Spec Freeze Date'] = df_levelingPower['Spec Freeze Date'].astype(str).str.zfill(10)
-df_levelingPower['Component Number'] = df_levelingPower['Component Number'].astype(int).astype(str).str.zfill(4)
-dfMergeOrderResult = df_levelingPower[['No (*)', 
-                                                                'Sequence No', 
-                                                                'Production Order', 
-                                                                'Planned Order', 
-                                                                'Manual', 
-                                                                'Scheduled Start Date (*)', 
-                                                                'Scheduled End Date', 
-                                                                'Specified Start Date', 
-                                                                'Specified End Date', 
-                                                                'Demand destination country', 
-                                                                'MS-CODE', 
-                                                                'Allocate', 
-                                                                'Spec Freeze Date', 
-                                                                'Linkage Number', 
-                                                                'Order Number', 
-                                                                'Order Item', 
-                                                                'Combination flag', 
-                                                                'Project Definition', 
-                                                                'Error message', 
-                                                                'Leveling Group', 
-                                                                'Leveling Class', 
-                                                                'Planning Plant', 
-                                                                'Component Number', 
-                                                                'Serial Number']]
-dfMergeOrderResult.to_excel(r'C:\Users\Administrator\Desktop\테스트\테스트2.xlsx')
-df_cycling = pd.DataFrame(columns={'No (*)', 
-                                                                'Sequence No', 
-                                                                'Production Order', 
-                                                                'Planned Order', 
-                                                                'Manual', 
-                                                                'Scheduled Start Date (*)', 
-                                                                'Scheduled End Date', 
-                                                                'Specified Start Date', 
-                                                                'Specified End Date', 
-                                                                'Demand destination country', 
-                                                                'MS-CODE', 
-                                                                'Allocate', 
-                                                                'Spec Freeze Date', 
-                                                                'Linkage Number', 
-                                                                'Order Number', 
-                                                                'Order Item', 
-                                                                'Combination flag', 
-                                                                'Project Definition', 
-                                                                'Error message', 
-                                                                'Leveling Group', 
-                                                                'Leveling Class', 
-                                                                'Planning Plant', 
-                                                                'Component Number', 
-                                                                'Serial Number',
-                                                                'Leveling'})
 
-for i in dfMergeOrderResult.index:
-    add = dfMergeOrderResult.loc[i]
-    print(add)
-    print(dict_cycling_cnt[dfMergeOrderResult['Linkage Number'][i]])
-    if dict_cycling_cnt[dfMergeOrderResult['Linkage Number'][i]] > 0:
-        df_cycling = df_cycling.append(add,ignore_index = True)
-        dict_cycling_cnt[dfMergeOrderResult['Linkage Number'][i]] -= 1
+df_Cycling = df_levelingPower
+df_Cycling = df_Cycling.dropna()
+for i in df_levelingPower.index:
+    add = df_levelingPower.loc[i]
+    if dict_cycling_cnt[df_levelingPower['Linkage Number'][i]] > 0:
+        df_Cycling = df_Cycling.append(add,ignore_index = True)
+        dict_cycling_cnt[df_levelingPower['Linkage Number'][i]] -= 1
     else:
         continue
-    
-df_cycling.to_excel(r'C:\Users\Administrator\Desktop\테스트\테스트랏.xlsx')
+## KSM 사이클링 추가 ST ##
+dict_setubi = defaultdict(list)
+dict_setubiNum = defaultdict(list)
+df_setubi = df_Cycling.sort_values(by=['MS Code'],ascending=True)
+df_setubi = df_setubi.drop_duplicates(['MS Code'])
+df_setubi = df_setubi.reset_index(drop=True)
+for i in df_setubi.index:
+    dict_setubi[df_setubi['MS Code'][i]] = float(i)
 
+df_Cycling['Cycling'] = ''
+for i in df_Cycling.index:
+    if i == 0 :
+        df_Cycling['Cycling'][i] = dict_setubi[df_Cycling['MS Code'][i]]
+        dict_setubi[df_Cycling['MS Code'][i]] += df_setubi.shape[0]
+    elif df_Cycling['MS Code'][i] == df_Cycling['MS Code'][i-1]:
+        df_Cycling['Cycling'][i] = dict_setubi[df_Cycling['MS Code'][i]]
+        dict_setubi[df_Cycling['MS Code'][i]] += df_setubi.shape[0]
+    else:
+        df_Cycling['Cycling'][i] = dict_setubi[df_Cycling['MS Code'][i]]
+        dict_setubi[df_Cycling['MS Code'][i]] += df_setubi.shape[0]
+df_Cycling = df_Cycling.sort_values(by=['Cycling'],ascending=False)
+df_Cycling = df_Cycling.reset_index(drop=True)
+for i in df_setubi.index:
+    dict_setubi[df_setubi['MS Code'][i]] = float(i)
+t = 0
+for i in df_Cycling.index:
+    if df_Cycling['MS Code'][i] == df_Cycling['MS Code'][i+1]:
+        if t == 0: 
+            if dict_setubi[df_Cycling['MS Code'][i]] == 0:
+                dict_setubi[df_Cycling['MS Code'][i]] = df_setubi.shape[0] - 1
+                df_Cycling['Cycling'][i] = dict_setubi[df_Cycling['MS Code'][i]] + 0.1
+                t = 1
+            elif dict_setubi[df_Cycling['MS Code'][i]] == 1:
+                dict_setubi[df_Cycling['MS Code'][i]] += 1
+                df_Cycling['Cycling'][i] = dict_setubi[df_Cycling['MS Code'][i]] + 0.1
+                t = 1
+            else:
+                dict_setubi[df_Cycling['MS Code'][i]] -= 2
+                df_Cycling['Cycling'][i] = dict_setubi[df_Cycling['MS Code'][i]] + 0.1
+                t = 1
+        else:
+            dict_setubi[df_Cycling['MS Code'][i]] += df_setubi.shape[0]
+            df_Cycling['Cycling'][i] = dict_setubi[df_Cycling['MS Code'][i]] + 0.1
+    else:
+        break
 
-df_levelingPower['No (*)'] = (df_levelingPower.index.astype(int) + 1) * 10
-df_levelingPower['Scheduled Start Date (*)'] = 'test' #self.labelDate.text()
-df_levelingPower['Planned Order'] = df_levelingPower['Planned Order'].astype(int).astype(str).str.zfill(10)
-df_levelingPower['Scheduled End Date'] = df_levelingPower['Scheduled End Date'].astype(str).str.zfill(10)
-df_levelingPower['Specified Start Date'] = df_levelingPower['Specified Start Date'].astype(str).str.zfill(10)
-df_levelingPower['Specified End Date'] = df_levelingPower['Specified End Date'].astype(str).str.zfill(10)
-df_levelingPower['Spec Freeze Date'] = df_levelingPower['Spec Freeze Date'].astype(str).str.zfill(10)
-df_levelingPower['Component Number'] = df_levelingPower['Component Number'].astype(int).astype(str).str.zfill(4)
-dfMergeOrderResult = df_levelingPower[['No (*)', 
+df_Cycling = df_Cycling.sort_values(by=['Cycling'],ascending=True)
+
+## KSM 사이클링 추가 END ##
+df_Cycling = df_Cycling.reset_index(drop=True)
+df_Cycling['No (*)'] = (df_Cycling.index.astype(int) + 1) * 10
+df_Cycling['Scheduled Start Date (*)'] = 'test' #self.labelDate.text()
+df_Cycling['Planned Order'] = df_Cycling['Planned Order'].astype(int).astype(str).str.zfill(10)
+df_Cycling['Scheduled End Date'] = df_Cycling['Scheduled End Date'].astype(str).str.zfill(10)
+df_Cycling['Specified Start Date'] = df_Cycling['Specified Start Date'].astype(str).str.zfill(10)
+df_Cycling['Specified End Date'] = df_Cycling['Specified End Date'].astype(str).str.zfill(10)
+df_Cycling['Spec Freeze Date'] = df_Cycling['Spec Freeze Date'].astype(str).str.zfill(10)
+df_Cycling['Component Number'] = df_Cycling['Component Number'].astype(int).astype(str).str.zfill(4)
+dfMergeOrderResult = df_Cycling[['No (*)', 
                                                                 'Sequence No', 
                                                                 'Production Order', 
                                                                 'Planned Order', 
@@ -493,7 +484,7 @@ dfMergeOrderResult = df_levelingPower[['No (*)',
                                                                 'Component Number', 
                                                                 'Serial Number']]
 dfMergeOrderResult = dfMergeOrderResult.reset_index(drop=True)
-dfMergeOrderResult.to_excel(r'C:\Users\Administrator\Desktop\테스트\머지.xlsx')
+dfMergeOrderResult.to_excel(r'C:\Users\Administrator\Desktop\테스트\머지.xlsx',index=False)
 
 # ===========================================================end
 
