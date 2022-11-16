@@ -89,6 +89,39 @@ def Alarm_all(df_sum,df_det,div,msc,smt,amo,ate,niz_a,niz_m,msg,ln,oq,sq,pt,nt,e
                 '완성예정일' : ecd
             },ignore_index=True)
             return(df_sum,df_det)
+
+def Cycling(df_main,dict,col_name,col_name_W,t):#11/16
+    df_Ate = df_main.sort_values(by=[col_name],ascending=True)
+    df_Ate = df_Ate.drop_duplicates([col_name])
+    df_Ate = df_Ate.reset_index(drop=True)
+    for i in df_Ate.index:
+        dict[df_Ate[col_name][i]] = float(i)
+    df_main = df_main.sort_values(by=[col_name],ascending=False)
+    df_main = df_main.reset_index(drop=True)
+    for i in df_main.index:
+        if df_main[col_name][i] == df_main[col_name][i+1]:
+            if i == 0: 
+                if dict[df_main[col_name][i]] == 0:
+                    dict[df_main[col_name][i]] = df_Ate.shape[0] - t
+                    df_main[col_name_W][i] = dict[df_main[col_name][i]] + 0.1
+                elif dict[df_main[col_name][i]] == 1:
+                    dict[df_main[col_name][i]] += t
+                    df_main[col_name_W][i] = dict[df_main[col_name][i]] + 0.1
+                else:
+                    dict[df_main[col_name][i]] -= (t+1)
+                    if dict[df_main[col_name][i]] < 0:
+                        dict[df_main[col_name][i]] += df_Ate.shape[0]
+                    df_main[col_name_W][i] = dict[df_main[col_name][i]] + 0.1
+            else:
+                dict[df_main[col_name][i]] += df_Ate.shape[0]
+                df_main[col_name_W][i] = dict[df_main[col_name][i]] + 0.1
+        else:
+            break
+
+    df_main = df_main.sort_values(by=[col_name_W],ascending=False)
+    df_main = df_main.reset_index(drop=True)
+    return(df_main)
+        
 #===================================================ksm add st 11/10 이미추가돼있음
 df_levelingMain = pd.read_excel(r'C:\Users\Administrator\Desktop\FAM3_Leveling-1\input\Master_File\20220901\POWER.xlsx')
 df_levelingMainDropSEQ = df_levelingMain[df_levelingMain['Sequence No'].isnull()]
@@ -384,14 +417,14 @@ writer.save()
 df_addSmtAssyPower.to_excel(r'C:\Users\Administrator\Desktop\테스트\설비.xlsx')
 #ksm add st 11/10 사이클링
 
-df_levelingPower = pd.merge(df_addSmtAssyPower,df_levelingMain,left_on='LINKAGE NO',right_on='Linkage Number',how='right')
+df_levelingPower = pd.merge(df_addSmtAssyPower,df_levelingMain,left_on='Linkage Number',right_on='Linkage Number',how='right')
 df_levelingPower = df_levelingPower.dropna(subset=['설비능력반영_착공량'])
 df_levelingPower = df_levelingPower.sort_values(by=['MS-CODE',
                                                 'Scheduled End Date',],
                                                 ascending=[True,
                                                             True])
-df_levelingPower = df_levelingPower.rename(columns={'Linkage Number_y' : 'Linkage Number'})
-
+# df_levelingPower = df_levelingPower.rename(columns={'Linkage Number_y' : 'Linkage Number'})
+df_levelingPower.to_excel(r'C:\Users\Administrator\Desktop\테스트\1번.xlsx')
 df_Cycling = df_levelingPower
 df_Cycling = df_Cycling.dropna()
 for i in df_levelingPower.index:
@@ -401,52 +434,34 @@ for i in df_levelingPower.index:
         dict_cycling_cnt[df_levelingPower['Linkage Number'][i]] -= 1
     else:
         continue
-## KSM 사이클링 추가 ST ##
-dict_setubi = defaultdict(list)
-dict_setubiNum = defaultdict(list)
-df_setubi = df_Cycling.sort_values(by=['MS Code'],ascending=True)
-df_setubi = df_setubi.drop_duplicates(['MS Code'])
-df_setubi = df_setubi.reset_index(drop=True)
-for i in df_setubi.index:
-    dict_setubi[df_setubi['MS Code'][i]] = float(i)
 
+## KSM 사이클링 추가 ST ##
+dict_Ate = defaultdict(list)
 df_Cycling['Cycling'] = ''
+df_Ate = df_Cycling.sort_values(by=['대표모델'],ascending=True)
+df_Ate = df_Ate.drop_duplicates(['대표모델'])
+df_Ate = df_Ate.reset_index(drop=True)
+for i in df_Ate.index:
+    dict_Ate[df_Ate['대표모델'][i]] = float(i)
 for i in df_Cycling.index:
     if i == 0 :
-        df_Cycling['Cycling'][i] = dict_setubi[df_Cycling['MS Code'][i]]
-        dict_setubi[df_Cycling['MS Code'][i]] += df_setubi.shape[0]
-    elif df_Cycling['MS Code'][i] == df_Cycling['MS Code'][i-1]:
-        df_Cycling['Cycling'][i] = dict_setubi[df_Cycling['MS Code'][i]]
-        dict_setubi[df_Cycling['MS Code'][i]] += df_setubi.shape[0]
+        df_Cycling['Cycling'][i] = dict_Ate[df_Cycling['대표모델'][i]]
+        dict_Ate[df_Cycling['대표모델'][i]] += df_Ate.shape[0]
+    elif df_Cycling['대표모델'][i] == df_Cycling['대표모델'][i-1]:
+        df_Cycling['Cycling'][i] = dict_Ate[df_Cycling['대표모델'][i]]
+        dict_Ate[df_Cycling['대표모델'][i]] += df_Ate.shape[0]
     else:
-        df_Cycling['Cycling'][i] = dict_setubi[df_Cycling['MS Code'][i]]
-        dict_setubi[df_Cycling['MS Code'][i]] += df_setubi.shape[0]
+        df_Cycling['Cycling'][i] = dict_Ate[df_Cycling['대표모델'][i]]
+        dict_Ate[df_Cycling['대표모델'][i]] += df_Ate.shape[0]
 df_Cycling = df_Cycling.sort_values(by=['Cycling'],ascending=False)
 df_Cycling = df_Cycling.reset_index(drop=True)
-for i in df_setubi.index:
-    dict_setubi[df_setubi['MS Code'][i]] = float(i)
-t = 0
+
 for i in df_Cycling.index:
-    if df_Cycling['MS Code'][i] == df_Cycling['MS Code'][i+1]:
-        if t == 0: 
-            if dict_setubi[df_Cycling['MS Code'][i]] == 0:
-                dict_setubi[df_Cycling['MS Code'][i]] = df_setubi.shape[0] - 1
-                df_Cycling['Cycling'][i] = dict_setubi[df_Cycling['MS Code'][i]] + 0.1
-                t = 1
-            elif dict_setubi[df_Cycling['MS Code'][i]] == 1:
-                dict_setubi[df_Cycling['MS Code'][i]] += 1
-                df_Cycling['Cycling'][i] = dict_setubi[df_Cycling['MS Code'][i]] + 0.1
-                t = 1
-            else:
-                dict_setubi[df_Cycling['MS Code'][i]] -= 2
-                df_Cycling['Cycling'][i] = dict_setubi[df_Cycling['MS Code'][i]] + 0.1
-                t = 1
-        else:
-            dict_setubi[df_Cycling['MS Code'][i]] += df_setubi.shape[0]
-            df_Cycling['Cycling'][i] = dict_setubi[df_Cycling['MS Code'][i]] + 0.1
-    else:
+    df_Cycling = Cycling(df_Cycling,dict_Ate,'대표모델','Cycling',i)
+    if df_Cycling['Cycling'][i] != df_Cycling['Cycling'][i+1]:
         break
 
+df_Cycling.to_excel(r'C:\Users\Administrator\Desktop\테스트\3번.xlsx')
 df_Cycling = df_Cycling.sort_values(by=['Cycling'],ascending=True)
 
 ## KSM 사이클링 추가 END ##

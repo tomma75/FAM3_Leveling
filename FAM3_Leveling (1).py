@@ -869,6 +869,34 @@ class Ui_MainWindow(QMainWindow):
                 '완성예정일' : ecd
             },ignore_index=True)
             return(df_sum,df_det)
+        def Cycling(df_main,dict,col_name,col_name_W,t):#11/16
+            df_Ate = df_main.sort_values(by=[col_name],ascending=True)
+            df_Ate = df_Ate.drop_duplicates([col_name])
+            df_Ate = df_Ate.reset_index(drop=True)
+            for i in df_Ate.index:
+                dict[df_Ate[col_name][i]] = float(i)
+            for i in df_main.index:
+                if df_main[col_name][i] == df_main[col_name][i+1]:
+                    if i == 0: 
+                        if dict[df_main[col_name][i]] == 0:
+                            dict[df_main[col_name][i]] = df_Ate.shape[0] - t
+                            df_main[col_name_W][i] = dict[df_main[col_name][i]] + 0.1
+                        elif dict[df_main[col_name][i]] == 1:
+                            dict[df_main[col_name][i]] += t
+                            df_main[col_name_W][i] = dict[df_main[col_name][i]] + 0.1
+                        else:
+                            dict[df_main[col_name][i]] -= (t+1)
+                            if dict[df_main[col_name][i]] < 0:
+                                dict[df_main[col_name][i]] += df_Ate.shape[0]
+                            df_main[col_name_W][i] = dict[df_main[col_name][i]] + 0.1
+                    else:
+                        dict[df_main[col_name][i]] += df_Ate.shape[0]
+                        df_main[col_name_W][i] = dict[df_main[col_name][i]] + 0.1
+                else:
+                    break
+            df_main = df_main.sort_values(by=[col_name_W],ascending=False)
+            df_main = df_main.reset_index(drop=True)
+            return(df_main)
 
         self.runBtn.setEnabled(False)   
         #pandas 경고없애기 옵션 적용
@@ -1639,7 +1667,6 @@ class Ui_MainWindow(QMainWindow):
                 ## KSM ADD ST 221110 사이클링##
                 df_levelingPower['Linkage Number'] = df_levelingPower['Linkage Number'].astype(str)
                 df_levelingPower_last = pd.merge(df_addSmtAssyPower,df_levelingPower,left_on='LINKAGE NO',right_on='Linkage Number',how='right')
-                df_levelingPower_last.to_excel(r'C:\Users\Administrator\Desktop\테스트\테스트1.xlsx')
                 df_levelingPower_last = df_levelingPower_last.dropna(subset=['설비능력반영_착공량'])
                 df_levelingPower_last = df_levelingPower_last.sort_values(by=['MS-CODE',
                                                                 'Scheduled End Date',],
@@ -1655,50 +1682,32 @@ class Ui_MainWindow(QMainWindow):
                         dict_cycling_cnt[df_levelingPower_last['Linkage Number'][i]] -= 1
                     else:
                         continue
-
+                
                 ## 사이클링 추가 ##
-                dict_setubi = defaultdict(list)
-                df_setubi = df_Cycling.sort_values(by=['MS Code'],ascending=True)
-                df_setubi = df_setubi.drop_duplicates(['MS Code'])
-                df_setubi = df_setubi.reset_index(drop=True)
-                for i in df_setubi.index:
-                    dict_setubi[df_setubi['MS Code'][i]] = float(i)
+                dict_Ate = defaultdict(list)
+                df_ATE = df_Cycling.sort_values(by=['MS Code'],ascending=True)
+                df_ATE = df_ATE.drop_duplicates(['MS Code'])
+                df_ATE = df_ATE.reset_index(drop=True)
+                for i in df_ATE.index:
+                    dict_Ate[df_ATE['MS Code'][i]] = float(i)
 
                 df_Cycling['Cycling'] = ''
                 for i in df_Cycling.index:
                     if i == 0 :
-                        df_Cycling['Cycling'][i] = dict_setubi[df_Cycling['MS Code'][i]]
-                        dict_setubi[df_Cycling['MS Code'][i]] += df_setubi.shape[0]
+                        df_Cycling['Cycling'][i] = dict_Ate[df_Cycling['MS Code'][i]]
+                        dict_Ate[df_Cycling['MS Code'][i]] += df_ATE.shape[0]
                     elif df_Cycling['MS Code'][i] == df_Cycling['MS Code'][i-1]:
-                        df_Cycling['Cycling'][i] = dict_setubi[df_Cycling['MS Code'][i]]
-                        dict_setubi[df_Cycling['MS Code'][i]] += df_setubi.shape[0]
+                        df_Cycling['Cycling'][i] = dict_Ate[df_Cycling['MS Code'][i]]
+                        dict_Ate[df_Cycling['MS Code'][i]] += df_ATE.shape[0]
                     else:
-                        df_Cycling['Cycling'][i] = dict_setubi[df_Cycling['MS Code'][i]]
-                        dict_setubi[df_Cycling['MS Code'][i]] += df_setubi.shape[0]
+                        df_Cycling['Cycling'][i] = dict_Ate[df_Cycling['MS Code'][i]]
+                        dict_Ate[df_Cycling['MS Code'][i]] += df_ATE.shape[0]
                 df_Cycling = df_Cycling.sort_values(by=['Cycling'],ascending=False)
                 df_Cycling = df_Cycling.reset_index(drop=True)
-                for i in df_setubi.index:
-                    dict_setubi[df_setubi['MS Code'][i]] = float(i)
-                t = 0
+                
                 for i in df_Cycling.index:
-                    if df_Cycling['MS Code'][i] == df_Cycling['MS Code'][i+1]:
-                        if t == 0: 
-                            if dict_setubi[df_Cycling['MS Code'][i]] == 0:
-                                dict_setubi[df_Cycling['MS Code'][i]] = df_setubi.shape[0] - 1
-                                df_Cycling['Cycling'][i] = dict_setubi[df_Cycling['MS Code'][i]] + 0.1
-                                t = 1
-                            elif dict_setubi[df_Cycling['MS Code'][i]] == 1:
-                                dict_setubi[df_Cycling['MS Code'][i]] += 1
-                                df_Cycling['Cycling'][i] = dict_setubi[df_Cycling['MS Code'][i]] + 0.1
-                                t = 1
-                            else:
-                                dict_setubi[df_Cycling['MS Code'][i]] -= 2
-                                df_Cycling['Cycling'][i] = dict_setubi[df_Cycling['MS Code'][i]] + 0.1
-                                t = 1
-                        else:
-                            dict_setubi[df_Cycling['MS Code'][i]] += df_setubi.shape[0]
-                            df_Cycling['Cycling'][i] = dict_setubi[df_Cycling['MS Code'][i]] + 0.1
-                    else:
+                    df_Cycling = Cycling(df_Cycling,dict_Ate,'대표모델','Cycling',i)
+                    if df_Cycling['Cycling'][i] != df_Cycling['Cycling'][i+1]:
                         break
 
                 df_Cycling = df_Cycling.sort_values(by=['Cycling'],ascending=True)
@@ -1738,7 +1747,8 @@ class Ui_MainWindow(QMainWindow):
                 dfMergeOrderResult = dfMergeOrderResult.reset_index(drop=True)
                 dfMergeOrderResult.to_excel('.\\debug\\flow13_Power.xlsx',index=False) #완료
                 ## KSM ADD END 221110 사이클링##
-
+                outputFile = '.\\result\\5400_A0100A81_'+ today +'_Leveling_List.xlsx'
+                dfMergeOrderResult.to_excel(outputFile, index=False)
 
             self.runBtn.setEnabled(True)
         except Exception as e:
