@@ -1689,7 +1689,7 @@ class PowerThread(QObject):
                             df_mergeOrderResult = df_mergeOrderResult.append(df_mergeOrder.iloc[j])
                             orderCnt -= 1
             # 사이클링을 위해 검사설비별로 정리
-            df_mergeOrderResult = df_mergeOrderResult.sort_values(by=['MODEL'],
+            df_mergeOrderResult = df_mergeOrderResult.sort_values(by=['MS Code'],
                                                                     ascending=[False])
             df_mergeOrderResult = df_mergeOrderResult.reset_index(drop=True)
             progress += round(maxPb / 20)
@@ -1712,48 +1712,57 @@ class PowerThread(QObject):
             df_mergeOrderResult = df_mergeOrderResult.reset_index(drop=True)
             progress += round(maxPb / 20)
             self.powerReturnPb.emit(progress)
-            #if self.isDebug:
-            df_mergeOrderResult.to_excel('.\\debug\\Power\\flow15-1.xlsx')
-            # 최대 사이클 번호 체크
-            maxCycle = float(df_cycleCopy['ModelCnt'][0])
-            cycleGr = 1.0
-            df_mergeOrderResult['사이클그룹'] = 0
-            # 각 검사장치별로 사이클 그룹을 작성하고, 최대 사이클과 비교하여 각 사이클그룹에서 배수처리
-            for i in df_mergeOrderResult.index:
-                if df_mergeOrderResult['긴급오더'][i] != '대상':
-                    multiCnt = maxCycle / df_mergeOrderResult['ModelCnt'][i]
-                    if i == 0:
-                        df_mergeOrderResult['사이클그룹'][i] = cycleGr
-                    else:
-                        if df_mergeOrderResult['MODEL'][i] != df_mergeOrderResult['MODEL'][i - 1]:
-                            if i == 1:
-                                cycleGr = 2.0
-                            else:
-                                cycleGr = 1.0
-                        df_mergeOrderResult['사이클그룹'][i] = cycleGr * multiCnt
-                    cycleGr += 1.0
-                if cycleGr >= maxCycle:
-                    cycleGr = 1.0
-            # 배정된 사이클 그룹 순으로 정렬
-            df_mergeOrderResult.to_excel('.\\debug\\Power\\flow15-2.xlsx')
-            df_mergeOrderResult = df_mergeOrderResult.sort_values(by=['사이클그룹'],
-                                                                        ascending=[True])
-            df_mergeOrderResult = df_mergeOrderResult.reset_index(drop=True)
-            progress += round(maxPb / 20)
-            self.powerReturnPb.emit(progress)
             if self.isDebug:
-                df_mergeOrderResult.to_excel('.\\debug\\Power\\flow16.xlsx')
-            df_mergeOrderResult = df_mergeOrderResult.reset_index()
+                df_mergeOrderResult.to_excel('.\\debug\\Power\\flow15-1.xlsx')
+            # 최대 사이클 번호 체크
+            df_mergeOrderResult['Cycling'] = ''
+            k = 1
             for i in df_mergeOrderResult.index:
                 if df_mergeOrderResult['긴급오더'][i] != '대상':
-                    if (i != 0 and (df_mergeOrderResult['대표모델'][i] == df_mergeOrderResult['대표모델'][i - 1])):
-                        for j in df_mergeOrderResult.index:
-                            if df_mergeOrderResult['긴급오더'][j] != '대상':
-                                if ((j != 0 and j < len(df_mergeOrderResult) - 1) and (df_mergeOrderResult['대표모델'][i] != df_mergeOrderResult['대표모델'][j + 1]) and (df_mergeOrderResult['대표모델'][i] != df_mergeOrderResult['대표모델'][j])):
-                                    df_mergeOrderResult['index'][i] = (float(df_mergeOrderResult['index'][j]) + float(df_mergeOrderResult['index'][j + 1])) / 2
-                                    df_mergeOrderResult = df_mergeOrderResult.sort_values(by=['index'], ascending=[True])
-                                    df_mergeOrderResult = df_mergeOrderResult.reset_index(drop=True)
-                                    break
+                    if df_mergeOrderResult['대표모델'][i][:4] == 'F3BU':
+                        df_mergeOrderResult['Cycling'][i] = i*2
+                    elif df_mergeOrderResult['대표모델'][i][:4] == 'F3PU':
+                        df_mergeOrderResult['Cycling'][i] = k
+                        k += 2
+                else :
+                    df_mergeOrderResult['Cycling'][i] = -1
+            df_mergeOrderResult.to_excel('.\\debug\\Power\\flow15-1.xlsx')
+            df_mergeOrderResult = df_mergeOrderResult.sort_values(by=['Cycling'],ascending=False)
+            df_mergeOrderResult = df_mergeOrderResult.reset_index(drop=True)
+            for i in df_mergeOrderResult.index:
+                if df_mergeOrderResult['긴급오더'][i] != '대상':
+                    if df_mergeOrderResult['대표모델'][i][:4] == df_mergeOrderResult['대표모델'][i+1][:4]:
+                        if df_mergeOrderResult['대표모델'][i][:4] == 'F3BU':
+                            df_mergeOrderResult['Cycling'][i] = i*2 + 0.5
+                        elif df_mergeOrderResult['대표모델'][i][:4] == 'F3PU':
+                            df_mergeOrderResult['Cycling'][i] = (i*2+1) + 0.5
+            df_mergeOrderResult = df_mergeOrderResult.sort_values(by=['Cycling'],ascending=False)
+            df_mergeOrderResult = df_mergeOrderResult.reset_index(drop=True)
+            df_mergeOrderResult.to_excel('.\\debug\\Power\\flow15-2.xlsx')
+            for i in df_mergeOrderResult.index:
+                if df_mergeOrderResult['긴급오더'][i] != '대상':
+                    if i == df_mergeOrderResult.shape[0]-1:
+                        break
+                    if df_mergeOrderResult['대표모델'][i][:4] == df_mergeOrderResult['대표모델'][i+1][:4]:
+                        if df_mergeOrderResult['대표모델'][i][:4] == 'F3BU':
+                            if int(df_mergeOrderResult['대표모델'][i][4:6])>int(df_mergeOrderResult['대표모델'][i+1][4:6]):
+                                continue
+                            else:
+                                k = df_mergeOrderResult['Cycling'][i]
+                                df_mergeOrderResult['Cycling'][i] = df_mergeOrderResult['Cycling'][i+1]
+                                df_mergeOrderResult['Cycling'][i+1] = k
+
+                        elif df_mergeOrderResult['대표모델'][i][:4] == 'F3PU':
+                            if int(df_mergeOrderResult['대표모델'][i][4:6])>int(df_mergeOrderResult['대표모델'][i+1][4:6]):
+                                continue
+                            else:
+                                k = df_mergeOrderResult['Cycling'][i]
+                                df_mergeOrderResult['Cycling'][i] = df_mergeOrderResult['Cycling'][i+1]
+                                df_mergeOrderResult['Cycling'][i+1] = k
+            df_mergeOrderResult = df_mergeOrderResult.sort_values(by=['Cycling'],
+                                                                        ascending=[True])
+            df_mergeOrderResult = df_mergeOrderResult.reset_index(drop=True)          
+            df_mergeOrderResult.to_excel('.\\debug\\Power\\flow15-3.xlsx')      
             progress += round(maxPb / 20)
             self.powerReturnPb.emit(progress)
             if self.isDebug:
