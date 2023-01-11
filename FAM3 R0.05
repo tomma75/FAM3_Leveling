@@ -16,6 +16,7 @@ import cx_Oracle
 from pathlib import Path
 import debugpy
 import time
+import os.path
 
 
 class MainThread(QObject):
@@ -1197,7 +1198,7 @@ class PowerThread(QObject):
                             dict_smtCnt[smtAssyName] -= df_input[resultCol][i]
         return [df_input, dict_smtCnt, alarmDetailNo, df_alarmDetail]
 
-    def ratioReflectInst(self, df_input, isRemain, dict_ratioCnt, dict_maxCnt, alarmDetailNo, df_alarmDetail):
+    def ratioReflectInst(self, df_input, isRemain, dict_ratioCnt, dict_maxCnt, alarmDetailNo, df_alarmDetail,limitCtCnt):
         instCol = 'SMT반영_착공량'
         resultCol1 = '설비능력반영_착공량'
         resultCol2 = '설비능력반영_착공공수'
@@ -1211,6 +1212,8 @@ class PowerThread(QObject):
                     if (str(df_input['긴급오더'][i]) == '대상' or str(df_input['당일착공'][i]) == '대상'):
                         df_input[resultCol2][i] = df_input[instCol][i] * df_input['공수'][i]
                         df_input[resultCol1][i] = df_input[instCol][i]
+                        if '/CT' in df_input['MS Code'][i]:
+                            limitCtCnt -= df_input[resultCol1][i]
                         self.moduleMaxCnt -= df_input[resultCol2][i]
                         dict_ratioCnt[str(df_input['상세구분'][i])] -= float(df_input[instCol][i]) * df_input['공수'][i]
                         if (dict_ratioCnt[str(df_input['상세구분'][i])] < 0):
@@ -1220,26 +1223,49 @@ class PowerThread(QObject):
                                 df_alarmDetail, alarmDetailNo = self.concatAlarmDetail(df_alarmDetail, alarmDetailNo, '2-2', df_input, i, '-', df_input[instCol][i] - df_input[resultCol1][i])
                         if self.moduleMaxCnt < 0:
                             df_alarmDetail, alarmDetailNo = self.concatAlarmDetail(df_alarmDetail, alarmDetailNo, '기타2', df_input, i, '-', df_input[instCol][i] - df_input[resultCol1][i])
+                        if limitCtCnt < 0:
+                            df_alarmDetail, alarmDetailNo = self.concatAlarmDetail(df_alarmDetail, alarmDetailNo, '기타4', df_input, i, '-', 0)
                     else:
-                        if str(df_input['MAX대수'][i]) != '' and str(df_input['MAX대수'][i]) != 'nan' and str(df_input['MAX대수'][i]) != '-':
-                            minCnt = min([(df_input[instCol][i] * df_input['공수'][i]), self.moduleMaxCnt, dict_ratioCnt[str(df_input['상세구분'][i])], dict_maxCnt[str(df_input['MODEL'][i])]])
-                            dict_maxCnt[str(df_input['MODEL'][i])] -= minCnt
-                        else:
-                            minCnt = min([(df_input[instCol][i] * df_input['공수'][i]), self.moduleMaxCnt, dict_ratioCnt[str(df_input['상세구분'][i])]])
-                        df_input[resultCol2][i] = minCnt
-                        df_input[resultCol1][i] = minCnt / df_input['공수'][i]
-                        dict_ratioCnt[str(df_input['상세구분'][i])] -= minCnt
-                        self.moduleMaxCnt -= minCnt
-                        if str(df_input['MAX대수'][i]) != '' and str(df_input['MAX대수'][i]) != 'nan' and str(df_input['MAX대수'][i]) != '-':
-                            if not isRemain and df_input[instCol][i] > 0 and (df_input[instCol][i] != df_input[resultCol1][i]):
-                                if minCnt == self.moduleMaxCnt:
-                                    df_alarmDetail, alarmDetailNo = self.concatAlarmDetail(df_alarmDetail, alarmDetailNo, '기타2', df_input, i, '-', df_input[instCol][i] - df_input[resultCol1][i])
-                                elif minCnt == dict_ratioCnt[str(df_input['상세구분'][i])]:
-                                    df_alarmDetail, alarmDetailNo = self.concatAlarmDetail(df_alarmDetail, alarmDetailNo, '2-1', df_input, i, '-', df_input[instCol][i] - df_input[resultCol1][i])
-                                elif str(df_input['MAX대수'][i]) != '' and str(df_input['MAX대수'][i]) != 'nan' and str(df_input['MAX대수'][i]) != '-' and minCnt == dict_maxCnt[str(df_input['MODEL'][i])]:
-                                    df_alarmDetail, alarmDetailNo = self.concatAlarmDetail(df_alarmDetail, alarmDetailNo, '2-2', df_input, i, '-', df_input[instCol][i] - df_input[resultCol1][i])
-
-        return [df_input, dict_ratioCnt, dict_maxCnt, alarmDetailNo, df_alarmDetail]
+                        if self.moduleMaxCnt > 0 :
+                            if str(df_input['MAX대수'][i]) != '' and str(df_input['MAX대수'][i]) != 'nan' and str(df_input['MAX대수'][i]) != '-':
+                                minCnt = min([(df_input[instCol][i] * df_input['공수'][i]), self.moduleMaxCnt, dict_ratioCnt[str(df_input['상세구분'][i])], dict_maxCnt[str(df_input['MODEL'][i])]])
+                                dict_maxCnt[str(df_input['MODEL'][i])] -= minCnt
+                            else:
+                                minCnt = min([(df_input[instCol][i] * df_input['공수'][i]), self.moduleMaxCnt, dict_ratioCnt[str(df_input['상세구분'][i])]])
+                            if '/CT' in df_input['MS Code'][i]:
+                                if limitCtCnt > 0 :        
+                                    df_input[resultCol2][i] = minCnt
+                                    df_input[resultCol1][i] = minCnt / df_input['공수'][i]
+                                    dict_ratioCnt[str(df_input['상세구분'][i])] -= minCnt
+                                    self.moduleMaxCnt -= minCnt
+                                    limitCtCnt -= minCnt
+                                    if str(df_input['MAX대수'][i]) != '' and str(df_input['MAX대수'][i]) != 'nan' and str(df_input['MAX대수'][i]) != '-':
+                                        if not isRemain and df_input[instCol][i] > 0 and (df_input[instCol][i] != df_input[resultCol1][i]):
+                                            if minCnt == self.moduleMaxCnt:
+                                                df_alarmDetail, alarmDetailNo = self.concatAlarmDetail(df_alarmDetail, alarmDetailNo, '기타2', df_input, i, '-', df_input[instCol][i] - df_input[resultCol1][i])
+                                            elif minCnt == dict_ratioCnt[str(df_input['상세구분'][i])]:
+                                                df_alarmDetail, alarmDetailNo = self.concatAlarmDetail(df_alarmDetail, alarmDetailNo, '2-1', df_input, i, '-', df_input[instCol][i] - df_input[resultCol1][i])
+                                            elif str(df_input['MAX대수'][i]) != '' and str(df_input['MAX대수'][i]) != 'nan' and str(df_input['MAX대수'][i]) != '-' and minCnt == dict_maxCnt[str(df_input['MODEL'][i])]:
+                                                df_alarmDetail, alarmDetailNo = self.concatAlarmDetail(df_alarmDetail, alarmDetailNo, '2-2', df_input, i, '-', df_input[instCol][i] - df_input[resultCol1][i])
+                                            elif minCnt == limitCtCnt :
+                                                df_alarmDetail, alarmDetailNo = self.concatAlarmDetail(df_alarmDetail, alarmDetailNo, '기타4', df_input, i, '-', 0)
+                            else:
+                                df_input[resultCol2][i] = minCnt
+                                df_input[resultCol1][i] = minCnt / df_input['공수'][i]
+                                dict_ratioCnt[str(df_input['상세구분'][i])] -= minCnt
+                                self.moduleMaxCnt -= minCnt
+                                limitCtCnt -= minCnt
+                                if str(df_input['MAX대수'][i]) != '' and str(df_input['MAX대수'][i]) != 'nan' and str(df_input['MAX대수'][i]) != '-':
+                                    if not isRemain and df_input[instCol][i] > 0 and (df_input[instCol][i] != df_input[resultCol1][i]):
+                                        if minCnt == self.moduleMaxCnt:
+                                            df_alarmDetail, alarmDetailNo = self.concatAlarmDetail(df_alarmDetail, alarmDetailNo, '기타2', df_input, i, '-', df_input[instCol][i] - df_input[resultCol1][i])
+                                        elif minCnt == dict_ratioCnt[str(df_input['상세구분'][i])]:
+                                            df_alarmDetail, alarmDetailNo = self.concatAlarmDetail(df_alarmDetail, alarmDetailNo, '2-1', df_input, i, '-', df_input[instCol][i] - df_input[resultCol1][i])
+                                        elif str(df_input['MAX대수'][i]) != '' and str(df_input['MAX대수'][i]) != 'nan' and str(df_input['MAX대수'][i]) != '-' and minCnt == dict_maxCnt[str(df_input['MODEL'][i])]:
+                                            df_alarmDetail, alarmDetailNo = self.concatAlarmDetail(df_alarmDetail, alarmDetailNo, '2-2', df_input, i, '-', df_input[instCol][i] - df_input[resultCol1][i])
+                                        elif minCnt == limitCtCnt :
+                                            df_alarmDetail, alarmDetailNo = self.concatAlarmDetail(df_alarmDetail, alarmDetailNo, '기타4', df_input, i, '-', 0)
+        return [df_input, dict_ratioCnt, dict_maxCnt, alarmDetailNo, df_alarmDetail,limitCtCnt]
 
     def run(self):
         # pandas 경고없애기 옵션 적용
@@ -1293,7 +1319,8 @@ class PowerThread(QObject):
             df_sosFile = df_sosFile.drop(df_sosFile[df_sosFile['MS Code'].str.contains('SF')].index)
             df_sosFile = df_sosFile.drop(df_sosFile[df_sosFile['MS Code'].str.contains('KM')].index)
             df_sosFile = df_sosFile.drop(df_sosFile[df_sosFile['MS Code'].str.contains('TA80')].index)
-            # df_sosFile = df_sosFile.drop(df_sosFile[df_sosFile['MS Code'].str.contains('CT')].index)
+            if self.cb_round != '1차' :
+                df_sosFile = df_sosFile.drop(df_sosFile[df_sosFile['MS Code'].str.contains('CT')].index)
             df_sosFile = df_sosFile.reset_index(drop=True)
             progress += round(maxPb / 20)
             self.powerReturnPb.emit(progress)
@@ -1356,10 +1383,16 @@ class PowerThread(QObject):
             self.powerReturnPb.emit(progress)
             if self.isDebug:
                 df_SmtAssyInven.to_excel('.\\debug\\Power\\flow5.xlsx')
-            df_secOrderMainList = pd.read_excel(self.list_masterFile[5], skiprows=5)
-            df_joinSmt = pd.merge(df_secOrderMainList, df_SmtAssyInven, how='right', left_on='ASSY NO', right_on='PARTS_NO')
-            df_joinSmt['대수'] = df_joinSmt['대수'].fillna(0)
-            df_joinSmt['현재수량'] = df_joinSmt['CURRENT_INV_QTY'] - df_joinSmt['대수']
+            #R0.06 ADD ST
+            if os.path.isfile(self.list_masterFile[14]):
+                df_secOrderMainList = pd.read_excel(self.list_masterFile[14], skiprows=5)
+                df_joinSmt = pd.merge(df_secOrderMainList, df_SmtAssyInven, how='right', left_on='ASSY NO', right_on='PARTS_NO')
+                df_joinSmt['대수'] = df_joinSmt['대수'].fillna(0)
+                df_joinSmt['현재수량'] = df_joinSmt['CURRENT_INV_QTY'] - df_joinSmt['대수']
+            else:
+                df_joinSmt = df_SmtAssyInven.copy()
+                df_joinSmt['현재수량'] = df_joinSmt['CURRENT_INV_QTY']
+            #R0.06 ADD END
             progress += round(maxPb / 20)
             self.powerReturnPb.emit(progress)
             if self.isDebug:
@@ -1492,22 +1525,27 @@ class PowerThread(QObject):
             df_mergeCondition['설비능력반영_착공공수_잔여'] = 0
             df_mergeCondition['설비능력반영_착공량'] = 0
             df_mergeCondition['설비능력반영_착공량_잔여'] = 0
+            df_limitCtCond = pd.read_excel(self.list_masterFile[13])
+            limitCtCnt = df_limitCtCond[df_limitCtCond['상세구분'] == 'POWER']['허용수량'].values[0]
+
             for i in df_powerCondition.index:
                 dict_ratioCnt[str(df_powerCondition['상세구분'][i])] = round(float(df_powerCondition['최대허용비율'][i]) * self.moduleMaxCnt)
                 if str(df_powerCondition['MAX대수'][i]) != '' and str(df_powerCondition['MAX대수'][i]) != '-':
                     dict_maxCnt[str(df_powerCondition['MODEL'][i])] = round(float(df_powerCondition['최대허용비율'][i]) * self.moduleMaxCnt * float(df_powerCondition['MAX대수'][i]))
-            df_mergeCondition, dict_ratioCnt, dict_maxCnt, alarmDetailNo, df_alarmDetail = self.ratioReflectInst(df_mergeCondition,
+            df_mergeCondition, dict_ratioCnt, dict_maxCnt, alarmDetailNo, df_alarmDetail,limitCtCnt = self.ratioReflectInst(df_mergeCondition,
                                                                                                                     False,
                                                                                                                     dict_ratioCnt,
                                                                                                                     dict_maxCnt,
                                                                                                                     alarmDetailNo,
-                                                                                                                    df_alarmDetail)
-            df_mergeCondition, dict_ratioCnt, dict_maxCnt, alarmDetailNo, df_alarmDetail = self.ratioReflectInst(df_mergeCondition,
+                                                                                                                    df_alarmDetail,
+                                                                                                                    limitCtCnt)
+            df_mergeCondition, dict_ratioCnt, dict_maxCnt, alarmDetailNo, df_alarmDetail,limitCtCnt = self.ratioReflectInst(df_mergeCondition,
                                                                                                                     True,
                                                                                                                     dict_ratioCnt,
                                                                                                                     dict_maxCnt,
                                                                                                                     alarmDetailNo,
-                                                                                                                    df_alarmDetail)
+                                                                                                                    df_alarmDetail,
+                                                                                                                    limitCtCnt)
             progress += round(maxPb / 20)
             self.powerReturnPb.emit(progress)
             if self.isDebug:
@@ -3453,6 +3491,7 @@ class Ui_MainWindow(QMainWindow):
             SpSlaveFilePath = r'.\\input\\Master_File\\' + date + r'\\'
         mainAteCapaFilePath = r'.\\input\\DB\\Main\\' + roundTxt + '\\Main_ATE_Capacity_Table.xlsx'
         ctCondFilePath = r'.\\input\\DB\\CT\\FAM3_CT_MST_Table.xlsx'
+        secPowerListFilePath = r'.\\input\\Master_File\\' + date + '\\' + roundTxt + r'\\100L1313(' + date[4:8] + ')POWER_2차.xlsx'
         pathList = [sosFilePath,
                     mainFilePath,
                     spFilePath,
@@ -3466,7 +3505,8 @@ class Ui_MainWindow(QMainWindow):
                     nonSpTerminalFilePath,
                     SpSlaveFilePath,
                     mainAteCapaFilePath,
-                    ctCondFilePath]
+                    ctCondFilePath,
+                    secPowerListFilePath]
         for path in pathList:
             if os.path.exists(path):
                 file = glob.glob(path)[0]
